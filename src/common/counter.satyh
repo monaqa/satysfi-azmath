@@ -1,0 +1,97 @@
+@require: base/ref
+@require: list
+@require: option
+
+module Counter : sig
+
+  type t
+
+  % Make LeafCounter.with initial value and its children.
+  val make : int -> t list -> t
+
+  % Reset the counter and its child counters.
+  val reset : t -> unit
+
+  % Increment the counter and reset its child counters
+  % and returns the value of counter after increment.
+  val inc : t -> int
+
+  % Increment the counter and reset its child counters
+  % and returns the value of counter after increment.
+  val add : int -> t -> int
+
+  % Get the value of the counter.
+  % Does not change any of its children.
+  val get : t -> int
+
+  % Set the value to the counter.
+  % All the values of child counters are reset.
+  val set : int -> t -> unit
+
+  % Set the value to the counter.
+  % All the values of child counters are not reset.
+  val set-no-reset : int -> t -> unit
+
+  direct +setcounter : [t; int] block-cmd
+  direct \getcounter : [(context -> int -> inline-boxes)?; t] inline-cmd
+
+end = struct
+
+  type t =
+    | LeafCounter of int ref
+    | BranchCounter of int ref * t list
+
+  let make initval childlst =
+    match childlst with
+    | [] -> LeafCounter(Ref.make initval)
+    | childlst -> BranchCounter(Ref.make initval, childlst)
+
+  let-rec reset ctr =
+    match ctr with
+    | LeafCounter(ctr-value) ->
+        ctr-value |> Ref.set 0
+    | BranchCounter(ctr-value, children) ->
+        let _ = List.map reset children in
+        ctr-value |> Ref.set 0
+
+  let add addend ctr =
+    match ctr with
+    | LeafCounter(ctr-value) ->
+        let () = ctr-value |> Ref.set (Ref.get ctr-value + addend) in
+        Ref.get ctr-value
+    | BranchCounter(ctr-value, children) ->
+        let () = ctr-value |> Ref.set (Ref.get ctr-value + addend) in
+        let _ = List.map reset children in
+        Ref.get ctr-value
+
+  let inc = add 1
+
+  let get ctr =
+    match ctr with
+    | LeafCounter(ctr-value) -> Ref.get ctr-value
+    | BranchCounter(ctr-value, _) -> Ref.get ctr-value
+
+  let set-no-reset value ctr =
+    match ctr with
+    | LeafCounter(ctr-value) -> ctr-value |> Ref.set value
+    | BranchCounter(ctr-value, _) -> ctr-value |> Ref.set value
+
+  let set value ctr =
+    let _ = match ctr with
+      | LeafCounter(ctr-value) -> []
+      | BranchCounter(ctr-value, children) -> List.map reset children
+    in
+    set-no-reset value ctr
+
+  let-block ctx +setcounter ctr value =
+    let () = ctr |> set value in
+    block-nil
+
+  let-inline ctx \getcounter ?:transf-opt ctr =
+    let value = get ctr in
+    let transf-default ctx num = (read-inline ctx (embed-string (arabic num))) in
+    let transf = transf-opt |> Option.from transf-default in
+    let ib-value = (transf ctx value) in
+    ib-value
+
+end

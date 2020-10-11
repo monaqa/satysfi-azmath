@@ -1,0 +1,83 @@
+% azmath/matrices.satyh
+%
+% 行列の組版のためのライブラリ．
+
+@require: math
+@import: common/matrix
+
+module AZMathMatrices : sig
+
+  val matrix-body : (int -> int -> inline-boxes -> inline-boxes) -> int -> math list -> math
+
+  direct \matrix  : [int; math list] math-cmd
+  direct \pmatrix : [int; math list] math-cmd
+  direct \bmatrix : [int; math list] math-cmd
+  direct \vmatrix : [int; math list] math-cmd
+  direct \dmatrix : [int; math list] math-cmd
+
+end = struct
+
+  let centering i j ib = inline-fil ++ ib ++ inline-fil
+
+  % aligner: int -> inline-boxes -> inline-boxes
+  % (i, j) をどういうふうに揃えるか．
+  let matrix-body aligner ncol mlst =
+    let ib-func ctx =
+      let fsize = ctx |> get-font-size in
+      let pad-width = fsize *' 0.4 in
+      let pad-height = fsize *' 0.25 in
+
+      % まずは math list を列数が ncol になるよう並べた tabular を作る
+      let math-matrix = AZTypeMatrix.from-list ncol ${} mlst in
+      let ib-matrix = AZTypeMatrix.map (embed-math ctx) math-matrix in
+      let ib-to-cell i j ib = 
+        NormalCell(
+          (pad-width, pad-width, pad-height, pad-height),
+          aligner i j ib
+        )
+      in
+      let cell-matrix = AZTypeMatrix.map-ij ib-to-cell ib-matrix in
+      let rulef _ _ = [] in
+      let ib-tabular = tabular (AZTypeMatrix.to-llist cell-matrix) rulef in
+
+      let (tab-wid, tab-ht, tab-dp) = get-natural-metrics ib-tabular in
+      % 多分 tab-dp は 0pt だけど念の為
+
+      % 外側の padding を消すために強引なことをする:
+      % inline-graphics で所望の大きさの inline-box を偽装し，
+      % 中身は graphics の draw-text で位置を調整しつつ記述する
+      let ib-tabular-adjusted =
+        let vertical-length =  (tab-ht +' tab-dp) -' pad-height *' 2.0 in
+        let axis-height = get-axis-height ctx in
+        let adj-ht = axis-height +' vertical-length *' 0.5 in
+        let adj-dp = vertical-length *' 0.5 -' axis-height in
+        let adj-wid = tab-wid -' pad-width *' 2.0 in
+        let text-drawer (x, y) =
+          % 相対的な原点から見て table の開始点をどこに置くか
+          let rel-origin-x = 0pt -' pad-width in
+          let rel-origin-y = 0pt -' vertical-length *' (0.5) in
+          [draw-text (x +' rel-origin-x, y +' rel-origin-y) ib-tabular]
+        in
+        inline-graphics adj-wid adj-ht adj-dp text-drawer in
+
+      ib-tabular-adjusted
+
+    in
+    text-in-math MathInner ib-func
+
+  let-math \matrix ncol mlst =
+    matrix-body centering ncol mlst
+
+  let-math \pmatrix ncol mlst =
+    math-paren Math.paren-left Math.paren-right (matrix-body centering ncol mlst)
+
+  let-math \bmatrix ncol mlst =
+    math-paren Math.sqbracket-left Math.sqbracket-right (matrix-body centering ncol mlst)
+
+  let-math \vmatrix ncol mlst =
+    math-paren Math.abs-left Math.abs-right (matrix-body centering ncol mlst)
+
+  let-math \dmatrix ncol mlst =
+    math-paren Math.norm-left Math.norm-right (matrix-body centering ncol mlst)
+
+end

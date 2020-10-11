@@ -1,0 +1,238 @@
+@require: stdjabook
+@require: code
+@require: color
+@require: hdecoset
+@require: enumitem/enumitem
+@require: math
+@import: ../src/azmath
+
+let-block ctx +ctx ctxf bt = read-block (ctxf ctx) bt
+
+let document record content = StdJaBook.document record '<%
+  +ctx(fun ctx -> (
+    let fsize = get-font-size ctx in
+    ctx |> set-paragraph-margin fsize fsize
+        |> set-leading (fsize *' 1.6)
+        |> set-code-text-command (command \code)
+  ))(content);
+>%
+
+let-block ctx +block-frame bt =
+  let decoset = VDecoSet.simple-frame 0.5pt Color.black Color.white in
+  block-frame-breakable ctx (5pt, 5pt, 10pt, 10pt) decoset (fun ctx -> read-block ctx bt)
+
+let-block +example str bt =
+  '<%
+    +code(str);
+    +block-frame(bt);
+  >%
+
+in
+
+document (|
+  title = {AZmath パッケージ};
+  author = {\@monaqa};
+  date = {2020/10/10};
+  show-title = true;
+  show-toc = true;
+|) '<%
+
++section{AZmath パッケージの概要}<%
+
+  +p{
+    AZmath パッケージは，\SATySFi; に豊富な math command を提供するパッケージです．
+    現在は以下のようなコマンドを提供しています．
+  }
+
+  +listing{
+    * アクセント (`\hat`, `\tilde`, etc.)
+    * 行列 (`\matrix`, `\pmatrix`, etc.)
+    * 括弧 (`\p`, `\pb`, etc.)
+  }
+
+>%
+
++section{AZmath の特徴}<%
+
+>%
+
+
++section{AZmath の機能}<%
+
+  +subsection{数式環境}<%
+
+    +p{
+      `+eqn-gather` コマンドにより，複数の数式を中央揃えで表示することができます．
+      複数の式を並べる際に便利です．
+      現在は全ての行に式番号がつくようになっています．
+    }
+
+    +eqn-gather(${
+      | f\p{x} = 2x + 3
+      |});
+
+    +p{
+      `+eqn-align` コマンドでも複数の数式を表示できますが，
+      `+eqn-gather` とは異なり，ユーザが定めた位置で式を揃えることができます．
+      同値変形などに便利です．
+      こちらも全ての行に式番号がつくようになっています．
+    }
+
+    +eqn-align(${
+      | 2x + 3 |= x + 1
+      | 2x - x |= 1 - 3
+      | x      |= -2
+      |});
+
+    +p{
+      その他， `+eqn-alignat` や `\eqn-aligned` (math command) といったコマンドもあります．
+    }
+
+  >%
+
+  +subsection{アクセント}<%
+
+    +p{
+      数式にアクセントを追加することができます．
+    }
+
+    +eqn-gather(${
+      | \hat{a}, \hat{b}, \hat{c}, \hat{d}, \hat{e}, \hat{f},
+        \hat{g}, \hat{h}, \hat{i}, \hat{j}, \hat{k}, \hat{l}, \hat{m},
+        \hat{n}, \hat{o}, \hat{p}, \hat{q}, \hat{r}, \hat{s},
+        \hat{t}, \hat{u}, \hat{v}, \hat{w}, \hat{x}, \hat{y}, \hat{z},
+      | \hat{A}, \hat{B}, \hat{C}, \hat{D}, \hat{E}, \hat{F},
+        \hat{G}, \hat{H}, \hat{I}, \hat{J}, \hat{K}, \hat{L}, \hat{M},
+        \hat{N}, \hat{O}, \hat{P}, \hat{Q}, \hat{R}, \hat{S},
+        \hat{T}, \hat{U}, \hat{V}, \hat{W}, \hat{X}, \hat{Y}, \hat{Z},
+      | \hat{\alpha}, \hat{\beta}, \hat{\gamma}, \hat{\delta}, \hat{\epsilon}, \hat{\zeta},
+        \hat{\eta}, \hat{\theta}, \hat{\iota}, \hat{\kappa}, \hat{\lambda}, \hat{\mu},
+        \hat{\nu}, \hat{\xi}, \hat{\omicron}, \hat{\pi}, \hat{\rho}, \hat{\sigma},
+        \hat{\tau}, \hat{\upsilon}, \hat{\phi}, \hat{\chi}, \hat{\psi}, \hat{\omega},
+      | \hat{\Alpha}, \hat{\Beta}, \hat{\Gamma}, \hat{\Delta}, \hat{\Epsilon}, \hat{\Zeta},
+        \hat{\Eta}, \hat{\Theta}, \hat{\Iota}, \hat{\Kappa}, \hat{\Lambda}, \hat{\Mu},
+        \hat{\Nu}, \hat{\Xi}, \hat{\Omicron}, \hat{\Pi}, \hat{\Rho}, \hat{\Sigma},
+        \hat{\Tau}, \hat{\Upsilon}, \hat{\Phi}, \hat{\Chi}, \hat{\Psi}, \hat{\Omega}.
+      |});
+
+    +p{
+      他のアクセントについても同様に付けることができます．
+    }
+
+    +eqn-gather(${
+      | \tilde{a}, \tilde{b}, \tilde{c}, \tilde{d}, \tilde{e}, \tilde{f},
+        \tilde{g}, \tilde{h}, \tilde{i}, \tilde{j}, \tilde{k}, \tilde{l}, \tilde{m},
+        \tilde{n}, \tilde{o}, \tilde{p}, \tilde{q}, \tilde{r}, \tilde{s},
+        \tilde{t}, \tilde{u}, \tilde{v}, \tilde{w}, \tilde{x}, \tilde{y}, \tilde{z},
+      | \bar{a}, \bar{b}, \bar{c}, \bar{d}, \bar{e}, \bar{f},
+        \bar{g}, \bar{h}, \bar{i}, \bar{j}, \bar{k}, \bar{l}, \bar{m},
+        \bar{n}, \bar{o}, \bar{p}, \bar{q}, \bar{r}, \bar{s},
+        \bar{t}, \bar{u}, \bar{v}, \bar{w}, \bar{x}, \bar{y}, \bar{z},
+      | \adot{a}, \adot{b}, \adot{c}, \adot{d}, \adot{e}, \adot{f},
+        \adot{g}, \adot{h}, \adot{i}, \adot{j}, \adot{k}, \adot{l}, \adot{m},
+        \adot{n}, \adot{o}, \adot{p}, \adot{q}, \adot{r}, \adot{s},
+        \adot{t}, \adot{u}, \adot{v}, \adot{w}, \adot{x}, \adot{y}, \adot{z},
+      | \ddot{a}, \ddot{b}, \ddot{c}, \ddot{d}, \ddot{e}, \ddot{f},
+        \ddot{g}, \ddot{h}, \ddot{i}, \ddot{j}, \ddot{k}, \ddot{l}, \ddot{m},
+        \ddot{n}, \ddot{o}, \ddot{p}, \ddot{q}, \ddot{r}, \ddot{s},
+        \ddot{t}, \ddot{u}, \ddot{v}, \ddot{w}, \ddot{x}, \ddot{y}, \ddot{z}.
+      |});
+
+    +p{
+      ${\hat{f}} や ${\hat{J}} など，中にはアクセントを付けるときに ${x} 方向の位置がズレているように見えるものがあります．
+      これは，引数の文字に関わらず ${x} 方向の位置を一律に定めて文字を付けているためであり，
+      アクセントの適切な位置をフォントから取得する機構が \SATySFi; にまだ備わっていないことに起因します．
+      場当たり的な解決策として，オプション引数に補正係数を指定して
+      `\hat?:!(0.18){f}` などとすれば補正することができます．
+    }
+    +eqn-gather(${
+      | \hat{f}, \hat?:!(0.18){f},
+      | \hat{J}, \hat?:!(0.20){J},
+      | \hat{m}, \hat?:!(0.-.0.15){m}.
+      |});
+
+    +p{
+      現時点での実用的な運用方法は，文書で使いそうなアクセント変数を
+      プリアンブル部分で以下のように定義してしまうことでしょう．
+    }
+    +code(```
+      let-math \hat-f = ${\hat?:!(0.18){f}}
+      let-math \hat-J = ${\hat?:!(0.20){J}}
+    ```);
+
+
+  >%
+
+  +subsection{括弧}<%
+    +p{
+      標準の `math` パッケージにも括弧は定義されていますが，
+      `azmath` パッケージでも新たな括弧を定義しています．
+      標準のアプローチと同様に括弧はグラフィックスで定義しており，
+      フォントに入っている括弧は用いていません．
+    }
+
+    +eqn-gather(${
+      | \lim_{x \to 0}\paren{\frac{1}{2} \paren{\paren{\paren{x + 1} + x}^2}}
+      | \lim_{x \to 0}\p{\frac{1}{2} \p{\p{\p{x + 1} + x}^2}}
+      |});
+
+    +p{
+      `azmath` で定義された括弧にはいくつかの特徴があります．
+    }
+
+    +listing{
+      * 括弧の高さは必要に応じて伸縮する．
+      * 複数の括弧を入れても，括弧の高さは変わらない．
+        ただし例外として，絶対値に用いられる `\pabs` のように開き括弧と閉じ括弧の区別が見かけ上つかない括弧については，
+        括弧のネストをわかりやすくするため中身より一段階高くする．
+    }
+
+    +p{
+      2番目については，以下のような例を見るとよりはっきりと違いが分かるでしょう．
+    }
+
+    +eqn-gather(${
+      | \paren{\paren{\paren{\paren{\paren{\paren{\paren{x}}}}}}}
+      | \p{\p{\p{\p{\p{\p{\p{x}}}}}}}
+      |});
+
+    +eqn-gather(${
+      | \lim_{x \to 0}\pb{\frac{1}{2} \pb{\pb{\pb{x + 1} + x}^2}}
+      | \lim_{x \to 0}\pB{\frac{1}{2} \pB{\pB{\pB{x + 1} + x}^2}}
+      | \lim_{x \to 0}\pabs{\frac{1}{2} \pabs{\pabs{\pabs{x + 1} + x}^2}}
+      |});
+
+  >%
+
+  +subsection{行列}<%
+
+    +p{
+      行列を描くことも出来ます．
+    }
+
+    +eqn-gather(${
+      | A = \pmatrix!(2){| a | b | c | d |}
+      | A^{-1} = \frac{1}{ad - bc} \pmatrix!(2){| d | -b | -c | a |}
+        = \pmatrix!(2){
+        | \frac{d}{ad - bc}  | -\frac{b}{ad - bc}
+        | -\frac{c}{ad - bc} | \frac{a}{ad - bc}
+        |}
+      |});
+
+    +p{
+      行列の括弧は色々変えられます．
+    }
+
+    +eqn-align(${
+      | A |= \matrix!(2){| a | b | c | d |}
+      | A |= \bmatrix!(2){| a | b | c | d |}
+      | A |= \vmatrix!(2){| a | b | c | d |}
+      | A |= \dmatrix!(2){| a | b | c | d |}
+      |});
+
+  >%
+
+>%
+
+
+>%

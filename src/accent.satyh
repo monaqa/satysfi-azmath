@@ -1,0 +1,86 @@
+% azmath/accent.satyh
+%
+% hat や dot などのアクセント記号を定義するパッケージ．
+
+@require: option
+@import: util
+
+module AZMathAccent : sig
+
+  direct \hat    : [float?; math;] math-cmd
+  direct \tilde  : [float?; math;] math-cmd
+  direct \bar    : [float?; math;] math-cmd
+  direct \adot   : [float?; math;] math-cmd
+  direct \ddot   : [float?; math;] math-cmd
+
+  % direct \hat-a : [] math-cmd
+
+end = struct
+
+  % let accent-scheme str-acc thickness inner =
+  %   let accent = math-char MathOrd str-acc in
+  %   ${#inner#accent}
+
+  let max-len l1 l2 = if l1 >' l2 then l1 else l2
+
+  % アクセントの付いた文字を返す．
+  % wid-acc-r: font-size に対するアクセントの横方向の幅の割合．
+  % acc-thickness-r: font-size に対するアクセントの高さ方向の厚みの割合．
+  let accent-scheme str-acc wid-acc-r acc-thickness-r shift-offset-opt inner =
+    let embedf ctx =
+      let accent = math-char MathOrd str-acc in
+      let ib-inner = embed-math ctx inner in
+      let ib-accent = embed-math ctx accent in
+      let (wid-in, ht-in, dp-in) = get-natural-metrics ib-inner in
+      let (_, ht-acc, _) = get-natural-metrics ib-accent in
+
+      let offset-acc = ht-acc -' (ctx |> get-font-size) *' acc-thickness-r in
+      let wid-acc = (ctx |> get-font-size) *' wid-acc-r in
+      let shift-offset = (ctx |> get-font-size) *' (shift-offset-opt |> Option.from 0.) in
+      let ht = max-len ht-in ht-acc in
+      let dp = dp-in in
+
+      let xoffset =
+        if wid-in >' wid-acc
+        then % 右揃え
+          wid-in
+        else % 中央揃え
+          wid-in +' (wid-acc -' wid-in) *' 0.5
+      in
+
+      let grlst (x, y) =
+        [
+          draw-text (x, y) ib-inner;
+          draw-text (x +' xoffset +' shift-offset, y +' ht-in -' offset-acc) ib-accent;
+        ]
+      in
+
+      math-graphics MathOrd wid-in ht dp grlst
+    in
+
+    math-in-math MathOrd embedf
+
+  let-math \hat    ?:shift inner = accent-scheme ` ̂` 0.5 0.25 shift inner
+  let-math \tilde  ?:shift inner = accent-scheme ` ̃` 0.5 0.28 shift inner
+  let-math \bar    ?:shift inner = accent-scheme ` ̅` 0.5 0.20 shift inner
+  let-math \adot   ?:shift inner = accent-scheme ` ̇` 0.5 0.22 shift inner
+  let-math \ddot   ?:shift inner = accent-scheme ` ̈` 0.5 0.22 shift inner
+
+  % let accent acc str =
+  %   let italic-str =
+  %     let ucodelst = string-explode str in
+  %     match ucodelst with
+  %     | [] -> ` `
+  %     | ucode :: _ -> string-unexplode [ucode - 0x0061 + 0x1D44E]
+  %   in
+  %   math-char MathOrd (italic-str ^ acc)
+  %
+  % let-math \hat it-inner =
+  %   let embedf ctx =
+  %     let str-inner = extract-string (read-inline ctx it-inner) in
+  %     accent ` ̂` str-inner
+  %   in
+  %   math-in-math MathOrd embedf
+
+
+end

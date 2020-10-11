@@ -1,0 +1,30 @@
+% azmath/util.satyh
+% 数式関連の関数やコマンドの実装に便利な関数群を集めたパッケージ．
+
+% context の情報を受け取って定義したい数式があるときに用いる．
+% たとえば数式の箱の大きさに応じて挙動を変えたいとき，
+% 一般には ctx の情報が必要となる．
+% embedf は ctx を入力にとって math 型を出力する関数．
+let math-in-math : math-class -> (context -> math) -> math
+  | mcls embedf =
+      text-in-math mcls (fun ctx -> embed-math ctx (embedf ctx))
+
+% inline-boxes -> inline-boxes の変換関数を用いて数式を変換するための関数．
+let math-transform : (inline-boxes -> inline-boxes) -> math-class -> math -> math
+  | transf mcls m =
+      text-in-math mcls (fun ctx -> transf (embed-math ctx m))
+
+% math の中に任意のグラフィックスを埋め込む関数．
+let math-graphics mcls wid ht dp grf =
+  text-in-math mcls (fun ctx -> inline-graphics wid ht dp grf)
+
+% graphics の中に任意の math を埋め込む関数．
+let draw-math ctx pt m =
+  draw-text pt (embed-math ctx m)
+
+% range
+let-rec range n1 n2 =
+  let-rec aux min max =
+    if min == max  then [min] else min :: (aux (min + 1) max)
+  in
+  if n1 < n2 then (aux n1 n2) else (aux n2 n1)

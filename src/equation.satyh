@@ -1,0 +1,226 @@
+% versatyle/math/equation.satyh
+%
+% align や gather に相当するコマンド群．
+
+@require: list
+@import: util
+@import: common/matrix
+@import: common/counter
+@import: parens
+@import: matrices
+
+module AZMathEquation : sig
+
+  val ctr : Counter.t
+  val set-labelf : (int -> int -> inline-text) -> unit
+
+  direct +eqn-gather : [math list;] block-cmd
+  direct +eqn-align : [math list;] block-cmd
+  direct +eqn-alignat : [int; math list;] block-cmd
+  direct \eqn-gather : [math list;] inline-cmd
+  direct \eqn-align : [math list;] inline-cmd
+  direct \eqn-alignat : [int; math list;] inline-cmd
+  direct \eqn-aligned : [math list;] math-cmd
+  direct \eqn-cases : [math list;] math-cmd
+  % direct \alignedat : [int; math list;] math-cmd
+  % direct \alignedat : [int; math list;] math-cmd
+
+end = struct
+
+  % counter {{{
+
+  let ctr = Counter.make 0 []
+
+  let labelf =
+    let value-to-label base idx =
+      % base: 数式開始時点でのカウンタの値．
+      % idx: 対象の数式の何番目にあるか（0 始まり）
+      let _ = ctr |> Counter.inc in
+      let it-value = embed-string (arabic (base + idx)) in
+      {(#it-value;)}
+    in
+    Ref.make value-to-label
+
+  let set-labelf lf = labelf |> Ref.set lf
+
+  let create-label-list n-eq =
+    let int-to-ib = Ref.get labelf in
+    % let _ = ctr |> Counter.inc in
+    let ctr-value = Counter.get ctr in
+    % let _ = ctr |> Counter.add (n-eq - 1) in
+    let rangelst = range 1 n-eq in
+    List.map (int-to-ib ctr-value) rangelst
+  % }}}
+
+  let-rec map-each f-lst lst =
+    match f-lst with
+    | [] -> []
+    | f1::fs -> (match lst with
+                 | [] -> []
+                 | x1::xs ->  (f1 x1) :: (map-each fs xs))
+
+  let math-to-aligned-ib ctx idx m mprevopt mnextopt =
+    let lengap = get-font-size ctx *' 2. in
+
+    let ibm = embed-math ctx m in
+    let ib =
+      match mnextopt with
+      | None -> ibm
+      | Some(mnext) ->
+          let ibspaceopt = space-between-maths ctx m mnext in
+          ( match ibspaceopt with
+            | None          -> ibm
+            | Some(ibspace) -> ibm ++ ibspace
+          )
+    in
+
+    if idx mod 2 == 0 then
+      inline-fil ++ ib
+    else
+      match mnextopt with
+      | None    -> ib ++ inline-fil
+      | Some(_) -> ib ++ inline-fil ++ inline-skip lengap
+
+
+  let create-max-height-vphantom lst-ib inner =
+    % inline-boxes のリストに対し，それらの最大の高さ/最大の深さを求め，
+    % それらをそれぞれ高さ・深さにもつよう加工した inline-boxes を返す．
+    % ただし， width は 0 とする．
+    let maximum len1 len2 = if len1 >' len2 then len1 else len2 in
+    let get-natural-height ib = let (_, h, _) = get-natural-metrics ib in h in
+    let get-natural-depth  ib = let (_, _, d) = get-natural-metrics ib in d in
+    let max-height = List.fold-right maximum 0pt (List.map get-natural-height lst-ib) in
+    let max-depth = List.fold-right maximum 0pt (List.map get-natural-depth lst-ib) in
+
+    let (w, _, _) = get-natural-metrics inner in
+    inline-graphics 0pt max-height max-depth (fun (x, y) -> [
+      draw-text (x -' w, y) inner
+    ])
+
+
+  let-block ctx +eqn-gather mlst =
+    let vlen = 4pt in
+
+    let math-matrix = AZTypeMatrix.from-list 1 ${} mlst in
+    let ib-matrix =
+      let math-to-centered-ib ctx m = inline-fil ++ (embed-math ctx m) ++ inline-fil in
+      AZTypeMatrix.map (math-to-centered-ib ctx) math-matrix in
+
+    let cell-matrix =
+      AZTypeMatrix.map (fun ib -> NormalCell((0pt, 0pt, vlen, vlen), ib)) ib-matrix
+    in
+
+    % Label 表示用のテーブル（右端に置いて複数行に渡るラベルを実現する）
+    let it-lst-label = create-label-list (List.length mlst) in
+    let ib-lst-label = List.map (read-inline ctx) it-lst-label in
+    let max-height-vphantom-f = List.map create-max-height-vphantom (AZTypeMatrix.to-llist ib-matrix) in
+    let dummy-ib = read-inline ctx {} in
+    let ib-phantom-label-matrix = AZTypeMatrix.from-list 1 dummy-ib (map-each max-height-vphantom-f ib-lst-label) in
+    let cell-label-matrix =
+      AZTypeMatrix.map (fun ib -> NormalCell((0pt, 0pt, vlen, vlen), ib)) ib-phantom-label-matrix
+    in
+
+    % let rulef = (labelf [read-inline ctx {hose}; read-inline ctx {fuga}] 300pt) in
+    let rulef _ _ = [] in
+    let ib-tabular = tabular (AZTypeMatrix.to-llist cell-matrix) rulef in
+    let ib-label-tabular = tabular (AZTypeMatrix.to-llist cell-label-matrix) rulef in
+
+    let margin = get-font-size ctx *' 1.0 in
+    let ctx-eqn = ctx |> set-paragraph-margin margin margin in
+    line-break true true ctx-eqn (inline-fil ++ ib-tabular ++ inline-fil ++ ib-label-tabular)
+
+  let-inline ctx \eqn-gather mlst =
+  inline-fil ++
+    embed-block-breakable ctx (read-block ctx '<+eqn-gather(mlst);>)
+      ++ omit-skip-after
+
+
+  let-block ctx +eqn-align mlst =
+    let vlen = 4pt in
+
+    let math-matrix = AZTypeMatrix.from-list 2 ${} mlst in
+    let ib-matrix = AZTypeMatrix.map-rowidx-adjacent (math-to-aligned-ib ctx) math-matrix in
+
+    let cell-matrix =
+      AZTypeMatrix.map (fun ib -> NormalCell((0pt, 0pt, vlen, vlen), ib)) ib-matrix
+    in
+
+    % Label 表示用のテーブル（右端に置いて複数行に渡るラベルを実現する）
+    let (nrow, _) = AZTypeMatrix.shape cell-matrix in
+    let it-lst-label = create-label-list nrow in
+    let ib-lst-label = List.map (read-inline ctx) it-lst-label in
+    let max-height-vphantom-f = List.map create-max-height-vphantom (AZTypeMatrix.to-llist ib-matrix) in
+    let dummy-ib = read-inline ctx {} in
+    let ib-phantom-label-matrix = AZTypeMatrix.from-list 1 dummy-ib (map-each max-height-vphantom-f ib-lst-label) in
+    let cell-label-matrix =
+      AZTypeMatrix.map (fun ib -> NormalCell((0pt, 0pt, vlen, vlen), ib)) ib-phantom-label-matrix
+    in
+
+    % let rulef = (labelf [read-inline ctx {hose}; read-inline ctx {fuga}] 300pt) in
+    let rulef _ _ = [] in
+    let ib-tabular = tabular (AZTypeMatrix.to-llist cell-matrix) rulef in
+    let ib-label-tabular = tabular (AZTypeMatrix.to-llist cell-label-matrix) rulef in
+
+    let margin = get-font-size ctx *' 1.0 in
+    let ctx-eqn = ctx |> set-paragraph-margin margin margin in
+    line-break true true ctx-eqn (inline-fil ++ ib-tabular ++ inline-fil ++ ib-label-tabular)
+
+  let-inline ctx \eqn-align mlst =
+    inline-fil ++
+      embed-block-breakable ctx (read-block ctx '<+eqn-align(mlst);>)
+        ++ omit-skip-after
+
+  let-math \eqn-aligned mlst =
+    let embedf ctx =
+      let vlen = 4pt in
+
+      let math-matrix = AZTypeMatrix.from-list 2 ${} mlst in
+      let ib-matrix = AZTypeMatrix.map-rowidx-adjacent (math-to-aligned-ib ctx) math-matrix in
+
+      let cell-matrix =
+        AZTypeMatrix.map (fun ib -> NormalCell((0pt, 0pt, vlen, vlen), ib)) ib-matrix
+      in
+
+      let rulef _ _ = [] in
+      let ib-tabular = tabular (AZTypeMatrix.to-llist cell-matrix) rulef in
+
+      let margin = get-font-size ctx *' 1.0 in
+      let ctx-eqn = ctx |> set-paragraph-margin margin margin in
+      ib-tabular
+    in
+    text-in-math MathOrd embedf
+
+  let-block ctx +eqn-alignat ncol mlst =
+
+    let vlen = 4pt in
+
+    let math-matrix = AZTypeMatrix.from-list (ncol * 2) ${} mlst in
+    let ib-matrix = AZTypeMatrix.map-rowidx-adjacent (math-to-aligned-ib ctx) math-matrix in
+
+    let cell-matrix =
+      AZTypeMatrix.map (fun ib -> NormalCell((0pt, 0pt, vlen, vlen), ib)) ib-matrix
+    in
+
+    let rulef _ _ = [] in
+    let ib-tabular = tabular (AZTypeMatrix.to-llist cell-matrix) rulef in
+
+    let margin = get-font-size ctx *' 1.0 in
+    let ctx-eqn = ctx |> set-paragraph-margin margin margin in
+    line-break true true ctx-eqn (inline-fil ++ ib-tabular ++ inline-fil)
+
+  let-inline ctx \eqn-alignat ncol mlst =
+    inline-fil ++
+      embed-block-breakable ctx (read-block ctx '<+eqn-alignat(ncol)(mlst);>)
+        ++ omit-skip-after
+
+  let-math \eqn-cases mlst =
+    let aligner i j ib =
+      if j mod 2 == 0 then ib ++ inline-fil
+      else inline-fil ++ ib
+    in
+    let mtx = AZMathMatrices.matrix-body aligner 2 mlst in
+    math-paren
+      (AZMathParens.curly-bracket true)
+        (AZMathParens.empty-paren false) mtx
+
+end
