@@ -5,9 +5,12 @@ module AZMathParens : sig
 
   direct \genparen : [(bool -> paren)?; (bool -> paren); math;] math-cmd
 
-  val round-bracket : bool -> paren
+  val round-bracket-l : paren
+  val round-bracket-r : paren
   val curly-bracket : bool -> paren
   val empty-paren : bool -> paren
+  % val curly-bracket-open : bool -> paren
+  % val empty-paren-open : bool -> paren
 
   val paren-scheme : (length -> length -> color -> graphics) -> (length -> length * length * length) -> (length -> length) -> paren
 
@@ -22,6 +25,8 @@ end = struct
   % 便利関数 {{{
 
   let minus l = 0pt -' l
+
+  let reflect-x = linear-transform-path (0.0 -. 1.0) 0.0 0.0 1.0
 
   let half-length hgt dpt hgtaxis fontsize =
     let minhalflen = fontsize *' 0.5 in
@@ -42,9 +47,9 @@ end = struct
   % paren-scheme {{{
 
   % 以下の3つの情報から， paren を返す関数
-  % graphicf: 括弧の高さ，フォントサイズ，括弧の色を指定し，グラフィックスを返す．
+  % graphicf: 欲しい括弧の高さ，フォントサイズ，括弧の色を指定し，グラフィックスを返す関数．
   % padsf: フォントサイズを指定し，
-  % 「グラフィックの左側に配置するアキ」「右側に配置するアキ」「縦に配置するアキ」を返す．
+  % 「グラフィックの左側に配置するアキ」「右側に配置するアキ」「縦に配置するアキ」を返す関数．
   % kinfo: kerning に関する情報．そのまま渡される
   let paren-scheme graphicf padsf kinfo hgt dpt hgtaxis fsize color =
 
@@ -93,8 +98,6 @@ let pads-normal-bracket is-open fsize =
   % round-bracket {{{
 
   let gr-round-bracket is-open vlen fsize color =
-    let direction = if is-open then 1.0 else 0.0 -. 1.0 in
-
     % 基準となる横の位置 (h) 及び 縦の位置 (v) の座標．
     let h0 = 0pt in
     let ha = vlen *' 0.01 +' fsize *' 0.05 in
@@ -106,21 +109,21 @@ let pads-normal-bracket is-open fsize =
 
     % 結ぶことになる点の座標．
     let (x0, y0) = (0pt, 0pt) in
-    let (x3, y3) = (ha *' direction, 0pt) in
-    let (x1, y1) = (hb *' direction, va) in
-    let (x5, y5) = (hb *' direction, minus va) in
-    let (x2, y2) = (x1 +' hdelta *' direction, y1 -' vdelta) in
-    let (x4, y4) = (x5 +' hdelta *' direction, y5 +' vdelta) in
+    let (x3, y3) = (ha, 0pt) in
+    let (x1, y1) = (hb, va) in
+    let (x5, y5) = (hb, minus va) in
+    let (x2, y2) = (x1 +' hdelta, y1 -' vdelta) in
+    let (x4, y4) = (x5 +' hdelta, y5 +' vdelta) in
 
     % Bezier 曲線を描くときのハンドル
     let (p0in , q0in ) = (0pt, minus vlen *' 0.4) in
     let (p0out, q0out) = (0pt,       vlen *' 0.4) in
     let (p3in , q3in ) = (0pt,       vlen *' 0.5) in
     let (p3out, q3out) = (0pt, minus vlen *' 0.5) in
-    let (p1in , q1in ) = ((minus hb *' 0.75) *' direction, minus vlen *' 0.3) in
-    let (p5out, q5out) = ((minus hb *' 0.75) *' direction,       vlen *' 0.3) in
-    let (p2out, q2out) = ((minus vlen *' 0.125) *' direction, minus vlen *' 0.2) in
-    let (p4in , q4in ) = ((minus vlen *' 0.125) *' direction,       vlen *' 0.2) in
+    let (p1in , q1in ) = ((minus hb *' 0.75), minus vlen *' 0.3) in
+    let (p5out, q5out) = ((minus hb *' 0.75),       vlen *' 0.3) in
+    let (p2out, q2out) = ((minus vlen *' 0.125), minus vlen *' 0.2) in
+    let (p4in , q4in ) = ((minus vlen *' 0.125),       vlen *' 0.2) in
 
     let path =
       start-path (x0, y0)
@@ -131,12 +134,17 @@ let pads-normal-bracket is-open fsize =
         |> line-to (x5, y5)
         |> close-with-bezier (x5 +' p5out, y5 +' q5out) (x0 +' p0in, y0 +' q0in)
     in
+    let path = if is-open then path else path |> reflect-x in
+
     fill color path
 
-  let round-bracket is-open =
-    paren-scheme (gr-round-bracket is-open) (pads-normal-bracket is-open) kern-default
+  let round-bracket-l =
+    paren-scheme (gr-round-bracket true) (pads-normal-bracket true) kern-default
 
-  let-math \p = math-paren (round-bracket true) (round-bracket false)
+  let round-bracket-r =
+    paren-scheme (gr-round-bracket false) (pads-normal-bracket false) kern-default
+
+  let-math \p = math-paren round-bracket-l round-bracket-r
 
   % }}}
 
