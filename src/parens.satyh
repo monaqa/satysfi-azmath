@@ -1,5 +1,6 @@
 % azmath/parens.satyh
 @require: pervasives
+@import: util
 
 module AZMathParens : sig
 
@@ -27,6 +28,8 @@ end = struct
   let minus l = 0pt -' l
 
   let reflect-x = linear-transform-path (0.0 -. 1.0) 0.0 0.0 1.0
+
+  let raise-math l = math-transform (raise-inline l) MathOrd
 
   let half-length hgt dpt hgtaxis fontsize =
     let minhalflen = fontsize *' 0.5 in
@@ -100,12 +103,12 @@ let pads-normal-bracket is-open fsize =
   let gr-round-bracket is-open vlen fsize color =
     % 基準となる横の位置 (h) 及び 縦の位置 (v) の座標．
     let h0 = 0pt in
-    let ha = vlen *' 0.01 +' fsize *' 0.05 in
+    let ha = vlen *' 0.02 +' fsize *' 0.05 in
     let hb = ha +' vlen *' 0.25 in
-    let hdelta = fsize *' 0.025 in
+    let hdelta = fsize *' 0.01 in
     let v0 = 0pt in
     let va = vlen in
-    let vdelta = fsize *' 0.025 in
+    let vdelta = fsize *' 0.01 in
 
     % 結ぶことになる点の座標．
     let (x0, y0) = (0pt, 0pt) in
@@ -124,14 +127,18 @@ let pads-normal-bracket is-open fsize =
     let (p5out, q5out) = ((minus hb *' 0.75),       vlen *' 0.3) in
     let (p2out, q2out) = ((minus vlen *' 0.125), minus vlen *' 0.2) in
     let (p4in , q4in ) = ((minus vlen *' 0.125),       vlen *' 0.2) in
+    let (p1out, q1out) = ((      hb *' 0.075),       vlen *' 0.03) in
+    let (p5in , q5in ) = ((      hb *' 0.075), minus vlen *' 0.03) in
+    let (p2in , q2in ) = ((      vlen *' 0.025),       vlen *' 0.04) in
+    let (p4out, q4out) = ((      vlen *' 0.025), minus vlen *' 0.04) in
 
     let path =
       start-path (x0, y0)
         |> bezier-to (x0 +' p0out, y0 +' q0out) (x1 +' p1in, y1 +' q1in) (x1, y1)
-        |> line-to (x2, y2)
+        |> bezier-to (x1 +' p1out, y1 +' q1out) (x2 +' p2in, y2 +' q2in) (x2, y2)
         |> bezier-to (x2 +' p2out, y2 +' q2out) (x3 +' p3in, y3 +' q3in) (x3, y3)
         |> bezier-to (x3 +' p3out, y3 +' q3out) (x4 +' p4in, y4 +' q4in) (x4, y4)
-        |> line-to (x5, y5)
+        |> bezier-to (x4 +' p4out, y4 +' q4out) (x5 +' p5in, y5 +' q5in) (x5, y5)
         |> close-with-bezier (x5 +' p5out, y5 +' q5out) (x0 +' p0in, y0 +' q0in)
     in
     let path = if is-open then path else path |> reflect-x in
@@ -283,7 +290,32 @@ let pads-normal-bracket is-open fsize =
   let abs-bracket is-open =
     paren-scheme (gr-abs-bracket 0.5pt) (pads-abs-bracket is-open) kern-default
 
-  let-math \pabs = math-paren (abs-bracket true) (abs-bracket false)
+  % absの場合は括弧の高さを見た目より少しかさ増ししているため，
+  % 普通に math-paren (abs-bracket true) (abs-bracket false) m でそのまま定義してしまうと
+  % 上添字が付いたときに添字の位置が高くなりすぎてしまう（下添字のときは低くなりすぎる）．
+  % そこで， math-pull-in-scripts を使って強引に添字の位置を調整する．
+  let-math \pabs m =
+    let inner = math-paren (abs-bracket true) (abs-bracket false) m in
+    % 添字をつけるためのダミーの箱．
+    % 幅0ptで，高さと深さは括弧の「見かけ上の」高さ・深さと同じ．
+    let mempty =
+      let mathf ctx =
+        let (_, ht, dp) = get-natural-metrics (embed-math ctx inner) in
+        let fsize = get-font-size ctx in
+        math-phantom MathOrd 0pt (ht -' fsize *' 0.1) (dp -' fsize *' 0.1)
+      in
+      math-in-math MathOrd mathf
+    in
+
+    % 括弧に添え字を直接つけるのではなく，高さ深さを調整したダミーの箱に付ける
+    let mathpullf msub msup = match (msub, msup) with
+      | (None, None) -> mempty
+      | (Some(msub), None) -> ${#mempty_#msub}
+      | (None, Some(msup)) -> ${#mempty^#msup}
+      | (Some(msub), Some(msup)) -> ${#mempty_#msub^#msup}
+    in
+    let msubsup = math-pull-in-scripts MathOpen MathClose mathpullf in
+    ${#inner#msubsup}
 
   % }}}
 

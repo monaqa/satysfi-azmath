@@ -18,6 +18,9 @@ let math-transform : (inline-boxes -> inline-boxes) -> math-class -> math -> mat
 let math-graphics mcls wid ht dp grf =
   text-in-math mcls (fun ctx -> inline-graphics wid ht dp grf)
 
+% 任意の幅・高さ・深さを持つ math box を作成する関数．
+let math-phantom mcls wid ht dp = math-graphics mcls wid ht dp (fun _ -> [])
+
 % graphics の中に任意の math を埋め込む関数．
 let draw-math ctx pt m =
   draw-text pt (embed-math ctx m)

@@ -194,6 +194,7 @@ document (|
     +eqn-gather(${
       | \paren{\paren{\paren{\paren{\paren{\paren{\paren{x}}}}}}}
       | \p{\p{\p{\p{\p{\p{\p{x}}}}}}}
+      | \(\(\(\(\(\(\(x\)\)\)\)\)\)\)
       |});
 
     +eqn-gather(${
