@@ -27,6 +27,34 @@ let-block +example str bt =
     +block-frame(bt);
   >%
 
+let-math \p-big m =
+  let mathf ctx =
+    let (_, ht, _) = get-natural-metrics (embed-math ctx ${\sqrt{2}}) in
+    ${\p?:!(ht)!(m)}
+  in
+  math-in-math MathOrd mathf
+
+let-math \p-Big m =
+  let mathf ctx =
+    let (_, ht, _) = get-natural-metrics (embed-math ctx ${\sqrt{2}^2}) in
+    ${\p?:!(ht)!(m)}
+  in
+  math-in-math MathOrd mathf
+
+let-math \p-bigg m =
+  let mathf ctx =
+    let (_, ht, _) = get-natural-metrics (embed-math ctx ${\frac{1}{2}}) in
+    ${\p?:!(ht)!(m)}
+  in
+  math-in-math MathOrd mathf
+
+let-math \p-Bigg m =
+  let mathf ctx =
+    let (_, ht, _) = get-natural-metrics (embed-math ctx ${\int_1^2}) in
+    ${\p?:!(ht)!(m)}
+  in
+  math-in-math MathOrd mathf
+
 in
 
 document (|
@@ -216,6 +244,18 @@ document (|
       | \sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{x}}}}}}}
       | \pB{\pB{\pB{\pB{\pB{\pB{\pB{x}}}}}}}
       | \[\[\[\[\[\[\[x\]\]\]\]\]\]\]
+      |});
+
+    +p{
+      時には括弧の大きさを自動ではなく手動で調整したい場合もあるかもしれません．
+      括弧の大きさはオプション引数によって調整できます． `\p?:!(20pt){xxx}` で，
+      あたかも中身が20ptの高さを持っているかのように括弧を組むことができます．
+    }
+
+    +eqn-gather(${
+      | \p?:!(10pt){xxx} = \p?:!(15pt){xxx} = \p?:!(30pt){xxx}
+      | \p{xxx} = \p-big{xxx} = \p-Big{xxx} = \p-bigg{xxx} = \p-Bigg{xxx}
+      | \lim_{x \to 0}\pangle?:!(16pt){\frac{1}{2} \pangle?:!(16pt){\pangle?:!(16pt){\pangle?:!(16pt){x + 1} + x}^2}}
       |});
 
   >%
