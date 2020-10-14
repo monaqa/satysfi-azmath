@@ -1,11 +1,12 @@
 % azmath/parens.satyh
 @require: pervasives
+@require: list
 @import: util
 
 % 欲しい括弧の高さ，フォントサイズ，括弧の色を指定し，
 % グラフィックス及び括弧のバウンディングボックス，kernの補正関数を返す関数．
 % ただしkernの補正関数は「括弧の中心軸をy座標の0ptとする」関数である．
-type graphicf-paren = length -> length -> color -> (graphics * point * point * (length -> length))
+type graphicf-paren = length -> length -> color -> (graphics list * point * point * (length -> length))
 
 % どのような大きさの括弧で囲むかを決める関数．
 % 囲む対象の深さ，高さ，軸の高さ，fontsize を与えて，
@@ -16,25 +17,39 @@ module AZMathParens : sig
 
   direct \genparen : [paren; paren; math;] math-cmd
 
-  val round-bracket-l : paren
-  val round-bracket-r : paren
-  val curly-bracket-l : paren
-  val curly-bracket-r : paren
+  val round-bracket-l  : paren
+  val round-bracket-r  : paren
+  val curly-bracket-l  : paren
+  val curly-bracket-r  : paren
   val square-bracket-l : paren
   val square-bracket-r : paren
-  val abs-bracket-l: paren
-  val abs-bracket-r: paren
-  val angle-bracket-l: paren
-  val angle-bracket-r: paren
-  val empty-bracket-l : paren
-  val empty-bracket-r : paren
+  val abs-bracket-l    : paren
+  val abs-bracket-r    : paren
+  val norm-bracket-l   : paren
+  val norm-bracket-r   : paren
+  val angle-bracket-l  : paren
+  val angle-bracket-r  : paren
+  val empty-bracket-l  : paren
+  val empty-bracket-r  : paren
 
   val paren-scheme : graphicf-paren -> half-height-paren -> paren
 
-  direct \p : [length?; math;] math-cmd
-  direct \pb : [length?; math;] math-cmd
-  direct \pB : [length?; math;] math-cmd
-  direct \pabs : [length?; math;] math-cmd
+  val gr-round-bracket  : bool -> graphicf-paren
+  val gr-curly-bracket  : bool -> graphicf-paren
+  val gr-square-bracket : length -> bool -> graphicf-paren
+  val gr-abs-bracket    : length -> bool -> graphicf-paren
+  val gr-norm-bracket   : length -> bool -> graphicf-paren
+  val gr-angle-bracket  : length -> bool -> graphicf-paren
+
+  val half-height-default : half-height-paren
+  val half-height-with-paddings : float -> half-height-paren
+  val half-height-fixed : length -> half-height-paren
+
+  direct \p      : [length?; math;] math-cmd
+  direct \pb     : [length?; math;] math-cmd
+  direct \pB     : [length?; math;] math-cmd
+  direct \pabs   : [length?; math;] math-cmd
+  direct \pnorm  : [length?; math;] math-cmd
   direct \pangle : [length?; math;] math-cmd
 
 end = struct
@@ -84,13 +99,13 @@ end = struct
     let kinfo y = kinfo-paren (y -' hgtaxis) in
 
     % 最西端の x 座標を lpad にする
-    let gr-paren-shifted = gr-paren |> shift-graphics (minus xmin, hgtaxis) in
+    let gr-paren-shifted = gr-paren |> List.map (shift-graphics (minus xmin, hgtaxis)) in
 
     let wid-paren = xmax -' xmin in
     let hgt-paren = halflen +' hgtaxis in
     let dpt-paren = halflen -' hgtaxis in
     (inline-graphics wid-paren hgt-paren dpt-paren
-      (fun pt -> [gr-paren-shifted |> shift-graphics pt]),
+      (fun pt -> gr-paren-shifted |> List.map (shift-graphics pt)),
       kinfo)
 
 
@@ -154,7 +169,7 @@ end = struct
     let xmin = if is-open then hmin else minus hmax in
     let xmax = if is-open then hmax else minus hmin in
     (
-      fill color path,
+      [fill color path],
       (xmin, va), (xmax, minus va),
       (fun _ -> (minus hmin) *' 0.6)
     )
@@ -247,7 +262,7 @@ end = struct
     let xmin = if is-open then hmin else minus hmax in
     let xmax = if is-open then hmax else minus hmin in
     (
-      fill color path,
+      [fill color path],
       (xmin, va), (xmax, minus va),
       (fun _ -> (hb -' hmin) *' 0.6)
     )
@@ -297,7 +312,7 @@ let pads-square-bracket is-open fsize =
     let xmin = if is-open then hmin else minus hmax in
     let xmax = if is-open then hmax else minus hmin in
     (
-      stroke thk color path,
+      [stroke thk color path],
       (xmin, va), (xmax, minus va),
       kern-default
     )
@@ -337,7 +352,7 @@ let pads-square-bracket is-open fsize =
     let xmin = if is-open then hmin else minus hmax in
     let xmax = if is-open then hmax else minus hmin in
     (
-      stroke thk color path,
+      [stroke thk color path],
       (xmin, va), (xmax, minus va),
       (fun _ -> (minus hmin) *' 0.4)
     )
@@ -352,6 +367,55 @@ let pads-square-bracket is-open fsize =
     math-paren
       (paren-scheme (gr-abs-bracket 0.5pt true) half-height)
         (paren-scheme (gr-abs-bracket 0.5pt false) half-height)
+          m
+
+
+% norm-bracket
+
+  let gr-norm-bracket thk is-open vlen fsize color =
+
+    % 基準となる横の位置 (h) 及び 縦の位置 (v) の座標．
+    let hmin = minus fsize *' 0.18 in
+    let h0 = 0pt in
+    let ha = fsize *' 0.13 in
+    let hmax = ha +' fsize *' 0.16 in
+    let va = vlen in
+
+    % 結ぶことになる点の座標．
+    let (x0, y0) = (h0, va) in
+    let (x1, y1) = (h0, minus va) in
+    let (x2, y2) = (ha, va) in
+    let (x3, y3) = (ha, minus va) in
+
+    let path1 =
+      start-path (x0, y0)
+        |> line-to (x1, y1)
+        |> terminate-path
+    in
+    let path2 =
+      start-path (x2, y2)
+        |> line-to (x3, y3)
+        |> terminate-path
+    in
+    let path2 = if is-open then path2 else reflect-x path2 in
+    let xmin = if is-open then hmin else minus hmax in
+    let xmax = if is-open then hmax else minus hmin in
+    (
+      [stroke thk color path1; stroke thk color path2],
+      (xmin, va), (xmax, minus va),
+      (fun _ -> (minus hmin) *' 0.4)
+    )
+
+  let norm-bracket-l = paren-scheme (gr-norm-bracket 0.5pt true) (half-height-with-paddings 0.08)
+  let norm-bracket-r = paren-scheme (gr-norm-bracket 0.5pt false) (half-height-with-paddings 0.08)
+  let-math \pnorm ?:ht m =
+    let half-height = match ht with
+      | Some(ht) -> half-height-fixed ht
+      | None -> half-height-with-paddings 0.08
+    in
+    math-paren
+      (paren-scheme (gr-norm-bracket 0.5pt true) half-height)
+        (paren-scheme (gr-norm-bracket 0.5pt false) half-height)
           m
 
 
@@ -381,7 +445,7 @@ let pads-square-bracket is-open fsize =
     let xmin = if is-open then hmin else minus hmax in
     let xmax = if is-open then hmax else minus hmin in
     (
-      stroke thk color path,
+      [stroke thk color path],
       (xmin, va), (xmax, minus va),
       (fun y -> y *' 0.3)  % 0.375 より気持ち控えめに
     )

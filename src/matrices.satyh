@@ -4,6 +4,7 @@
 
 @require: math
 @import: common/matrix
+@import: parens
 
 module AZMathMatrices : sig
 
@@ -69,15 +70,15 @@ end = struct
     matrix-body centering ncol mlst
 
   let-math \pmatrix ncol mlst =
-    math-paren Math.paren-left Math.paren-right (matrix-body centering ncol mlst)
+    math-paren AZMathParens.round-bracket-l AZMathParens.round-bracket-r (matrix-body centering ncol mlst)
 
   let-math \bmatrix ncol mlst =
-    math-paren Math.sqbracket-left Math.sqbracket-right (matrix-body centering ncol mlst)
+    math-paren AZMathParens.square-bracket-l AZMathParens.square-bracket-r (matrix-body centering ncol mlst)
 
   let-math \vmatrix ncol mlst =
-    math-paren Math.abs-left Math.abs-right (matrix-body centering ncol mlst)
+    math-paren AZMathParens.abs-bracket-l AZMathParens.abs-bracket-r (matrix-body centering ncol mlst)
 
   let-math \dmatrix ncol mlst =
-    math-paren Math.norm-left Math.norm-right (matrix-body centering ncol mlst)
+    math-paren AZMathParens.norm-bracket-l AZMathParens.norm-bracket-r (matrix-body centering ncol mlst)
 
 end

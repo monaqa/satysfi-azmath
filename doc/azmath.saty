@@ -237,6 +237,7 @@ document (|
       | \lim_{x \to 0}\pb{\frac{1}{2} \pb{\pb{\pb{x + 1} + x}^2}}
       | \lim_{x \to 0}\pB{\frac{1}{2} \pB{\pB{\pB{x + 1} + x}^2}}
       | \lim_{x \to 0}\pabs{\frac{1}{2} \pabs{\pabs{\pabs{x + 1} + x}^2}}
+      | \lim_{x \to 0}\pnorm{\frac{1}{2} \pnorm{\pnorm{\pnorm{x + 1} + x}^2}}
       | \lim_{x \to 0}\pangle{\frac{1}{2} \pangle{\pangle{\pangle{x + 1} + x}^2}}^2
       |});
 
