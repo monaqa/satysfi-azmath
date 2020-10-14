@@ -4,12 +4,14 @@
 
 module AZMathParens : sig
 
-  direct \genparen : [(bool -> paren)?; (bool -> paren); math;] math-cmd
+  direct \genparen : [paren; paren; math;] math-cmd
 
   val round-bracket-l : paren
   val round-bracket-r : paren
-  val curly-bracket : bool -> paren
-  val empty-paren : bool -> paren
+  val curly-bracket-l : paren
+  val curly-bracket-r : paren
+  val empty-bracket-l : paren
+  val empty-bracket-r : paren
   % val curly-bracket-open : bool -> paren
   % val empty-paren-open : bool -> paren
 
@@ -37,13 +39,8 @@ end = struct
       length-max minhalflen (length-max (hgt -' hgtaxis) (hgtaxis +' dpt))
 
   % 一般的な括弧を描く．
-  % \genparen!(paren){inner} とすると， inner を paren で囲む．
-  % \genparen?:!(paren1)!(paren2){inner} とすると，inner を
-  % 開き括弧については paren1 で，閉じ括弧については paren2 で囲む．
-  let-math \genparen ?:po p inner =
-    match po with
-    | Some(paren) -> math-paren (paren true) (p false) inner
-    | None -> math-paren (p true) (p false) inner
+  let-math \genparen popen pclose inner =
+    math-paren popen pclose inner
 
   % }}}
 
@@ -77,7 +74,8 @@ end = struct
       (fun pt -> [gr-paren-shifted |> shift-graphics pt]),
       kinfo)
 
-  let empty-paren _ _ _ _ _ _ = (inline-nil, (fun _ -> 0pt))
+  let empty-bracket-l _ _ _ _ _ = (inline-nil, (fun _ -> 0pt))
+  let empty-bracket-r _ _ _ _ _ = (inline-nil, (fun _ -> 0pt))
 
   % }}}
 
@@ -87,7 +85,7 @@ let pads-normal-bracket is-open fsize =
     if is-open then (pad-outer, pad-inner, 0pt) else (pad-inner, pad-outer, 0pt)
 
   let pads-abs-bracket is-open fsize =
-    let (pad-inner, pad-outer, pad-top) = (fsize *' 0.2, fsize *' 0.2, fsize *' 0.1) in
+    let (pad-inner, pad-outer, pad-top) = (fsize *' 0.16, fsize *' 0.18, fsize *' 0.1) in
     if is-open then (pad-outer, pad-inner, pad-top) else (pad-inner, pad-outer, pad-top)
 
   % }}}
@@ -229,21 +227,28 @@ let pads-normal-bracket is-open fsize =
     in
     fill color path
 
-  let curly-bracket is-open =
-    paren-scheme (gr-curly-bracket is-open) (pads-normal-bracket is-open) kern-default
+  let curly-bracket-l =
+    paren-scheme (gr-curly-bracket true) (pads-normal-bracket true) kern-default
 
-  let-math \pb = math-paren (curly-bracket true) (curly-bracket false)
+  let curly-bracket-r =
+    paren-scheme (gr-curly-bracket false) (pads-normal-bracket false) kern-default
+
+  let-math \pb = math-paren curly-bracket-l curly-bracket-r
 
   % }}}
 
   % square-bracket {{{
+
+let pads-square-bracket is-open fsize =
+    let (pad-inner, pad-outer) = (fsize *' 0.02, fsize *' 0.12) in
+    if is-open then (pad-outer, pad-inner, 0pt) else (pad-inner, pad-outer, 0pt)
 
   let gr-square-bracket thk is-open vlen fsize color =
     let direction = if is-open then 1.0 else 0.0 -. 1.0 in
 
     % 基準となる横の位置 (h) 及び 縦の位置 (v) の座標．
     let h0 = 0pt in
-    let ha = fsize *' 0.2 in
+    let ha = vlen *' 0.07 +' fsize *' 0.1 in
     let va = vlen in
 
     % 結ぶことになる点の座標．
@@ -262,7 +267,7 @@ let pads-normal-bracket is-open fsize =
     stroke thk color path
 
   let square-bracket is-open =
-    paren-scheme (gr-square-bracket 0.5pt is-open) (pads-normal-bracket is-open) kern-default
+    paren-scheme (gr-square-bracket 0.5pt is-open) (pads-square-bracket is-open) kern-default
 
   let-math \pB = math-paren (square-bracket true) (square-bracket false)
 

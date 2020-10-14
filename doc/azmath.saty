@@ -86,7 +86,15 @@ document (|
 
     +p{
       その他， `+eqn-alignat` や `\eqn-aligned` (math command) といったコマンドもあります．
+      `\eqn-cases` を用いて場合分けを行うこともできます．
     }
+
+    +math(${
+      y = \eqn-cases{
+      | x      | \p{x \geq 0}
+      | \neg x | \p{x < 0}
+      |}
+      });
 
   >%
 
@@ -203,6 +211,12 @@ document (|
       | \lim_{x \to 0}\pabs{\frac{1}{2} \pabs{\pabs{\pabs{x + 1} + x}^2}}
       |});
 
+    +eqn-gather(${
+      | \sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{x}}}}}}}
+      | \pB{\pB{\pB{\pB{\pB{\pB{\pB{x}}}}}}}
+      | \[\[\[\[\[\[\[x\]\]\]\]\]\]\]
+      |});
+
   >%
 
   +subsection{行列}<%
@@ -213,10 +227,10 @@ document (|
 
     +eqn-gather(${
       | A = \pmatrix!(2){| a | b | c | d |}
-      | A^{-1} = \frac{1}{ad - bc} \pmatrix!(2){| d | -b | -c | a |}
+      | A^{-1} = \frac{1}{ad - bc} \pmatrix!(2){| d | \neg b | \neg c | a |}
         = \pmatrix!(2){
-        | \frac{d}{ad - bc}  | -\frac{b}{ad - bc}
-        | -\frac{c}{ad - bc} | \frac{a}{ad - bc}
+        | \frac{d}{ad - bc}  | \neg \frac{b}{ad - bc}
+        | \neg \frac{c}{ad - bc} | \frac{a}{ad - bc}
         |}
       |});
 

@@ -219,8 +219,6 @@ end = struct
       else inline-fil ++ ib
     in
     let mtx = AZMathMatrices.matrix-body aligner 2 mlst in
-    math-paren
-      (AZMathParens.curly-bracket true)
-        (AZMathParens.empty-paren false) mtx
+    math-paren AZMathParens.curly-bracket-l AZMathParens.empty-bracket-r mtx
 
 end

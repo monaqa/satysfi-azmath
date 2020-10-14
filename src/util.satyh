@@ -31,3 +31,5 @@ let-rec range n1 n2 =
     if min == max  then [min] else min :: (aux (min + 1) max)
   in
   if n1 < n2 then (aux n1 n2) else (aux n2 n1)
+
+let-math \neg = math-char MathOrd `−`
