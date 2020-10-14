@@ -12,10 +12,8 @@ module AZMathParens : sig
   val curly-bracket-r : paren
   val empty-bracket-l : paren
   val empty-bracket-r : paren
-  % val curly-bracket-open : bool -> paren
-  % val empty-paren-open : bool -> paren
 
-  val paren-scheme : (length -> length -> color -> graphics) -> (length -> length * length * length) -> (length -> length) -> paren
+  val paren-scheme : (length -> length -> color -> (graphics * point * point * (length -> length))) -> float -> paren
 
   direct \p : [math;] math-cmd
   direct \pb : [math;] math-cmd
@@ -47,32 +45,32 @@ end = struct
   % paren-scheme {{{
 
   % 以下の3つの情報から， paren を返す関数
-  % graphicf: 欲しい括弧の高さ，フォントサイズ，括弧の色を指定し，グラフィックスを返す関数．
-  % padsf: フォントサイズを指定し，
-  % 「グラフィックの左側に配置するアキ」「右側に配置するアキ」「縦に配置するアキ」を返す関数．
+  % graphicf: 欲しい括弧の高さ，フォントサイズ，括弧の色を指定し，
+  %           グラフィックス及び括弧のバウンディングボックス，kernの補正関数を返す関数．
+  %           ただしkernの補正関数は「括弧の中心軸をy座標の0ptとする」関数である．
+  % vpad: 括弧で囲むときに，中身に付ける縦方向のパディングの font size に対する比率．
   % kinfo: kerning に関する情報．そのまま渡される
-  let paren-scheme graphicf padsf kinfo hgt dpt hgtaxis fsize color =
+  let paren-scheme graphicf vpad hgt dpt hgtaxis fsize color =
 
     % 長さの計算
-    let halflen = half-length hgt dpt hgtaxis fsize in
-    % 左側，右側，上下につく pad を取得
-    let (lpad, rpad, tpad) = padsf fsize in
-    let halflen-paren = halflen +' tpad in
+    let halflen = (half-length hgt dpt hgtaxis fsize) +' fsize *' vpad in
 
     % 括弧の graphics の作成
-    let gr-paren = graphicf halflen-paren fsize color in
-    let ((xmin, _), (xmax, _)) = gr-paren |> get-graphics-bbox in
-    let wid-gr = xmax -' xmin in
+    let (gr-paren, (xmin, ymin), (xmax, ymax), kinfo-paren) = graphicf halflen fsize color in
+
+    % kerning info の基準位置を補正
+    let kinfo y = kinfo-paren (y -' hgtaxis) in
 
     % 最西端の x 座標を lpad にする
-    let gr-paren-shifted = gr-paren |> shift-graphics (lpad -' xmin, hgtaxis) in
+    let gr-paren-shifted = gr-paren |> shift-graphics (minus xmin, hgtaxis) in
 
-    let wid-paren = lpad +' wid-gr +' rpad in
-    let hgt-paren = halflen-paren +' hgtaxis in
-    let dpt-paren = halflen-paren -' hgtaxis in
+    let wid-paren = xmax -' xmin in
+    let hgt-paren = halflen +' hgtaxis in
+    let dpt-paren = halflen -' hgtaxis in
     (inline-graphics wid-paren hgt-paren dpt-paren
       (fun pt -> [gr-paren-shifted |> shift-graphics pt]),
       kinfo)
+
 
   let empty-bracket-l _ _ _ _ _ = (inline-nil, (fun _ -> 0pt))
   let empty-bracket-r _ _ _ _ _ = (inline-nil, (fun _ -> 0pt))
@@ -100,10 +98,12 @@ let pads-normal-bracket is-open fsize =
 
   let gr-round-bracket is-open vlen fsize color =
     % 基準となる横の位置 (h) 及び 縦の位置 (v) の座標．
+    let hmin = minus fsize *' 0.08 in
     let h0 = 0pt in
     let ha = vlen *' 0.02 +' fsize *' 0.05 in
     let hb = ha +' vlen *' 0.25 in
     let hdelta = fsize *' 0.01 in
+    let hmax = hb +' fsize *' 0.1 in
     let v0 = 0pt in
     let va = vlen in
     let vdelta = fsize *' 0.01 in
@@ -139,15 +139,17 @@ let pads-normal-bracket is-open fsize =
         |> bezier-to (x4 +' p4out, y4 +' q4out) (x5 +' p5in, y5 +' q5in) (x5, y5)
         |> close-with-bezier (x5 +' p5out, y5 +' q5out) (x0 +' p0in, y0 +' q0in)
     in
-    let path = if is-open then path else path |> reflect-x in
+    let path = if is-open then path else reflect-x path in
+    let xmin = if is-open then hmin else minus hmax in
+    let xmax = if is-open then hmax else minus hmin in
+    (
+      fill color path,
+      (xmin, va), (xmax, minus va),
+      (fun _ -> (minus hmin) *' 0.6)
+    )
 
-    fill color path
-
-  let round-bracket-l =
-    paren-scheme (gr-round-bracket true) (pads-normal-bracket true) kern-default
-
-  let round-bracket-r =
-    paren-scheme (gr-round-bracket false) (pads-normal-bracket false) kern-default
+  let round-bracket-l = paren-scheme (gr-round-bracket true) 0.0
+  let round-bracket-r = paren-scheme (gr-round-bracket false) 0.0
 
   let-math \p = math-paren round-bracket-l round-bracket-r
 
@@ -156,15 +158,15 @@ let pads-normal-bracket is-open fsize =
   % curly-bracket {{{
 
   let gr-curly-bracket is-open vlen fsize color =
-    let direction = if is-open then 1.0 else 0.0 -. 1.0 in
-
     % 基準となる横の位置 (h) 及び 縦の位置 (v) の座標．
+    let hmin = minus fsize *' 0.06 in
     let h0 = 0pt in
     let ha = fsize *' 0.10 in
     let hb = fsize *' 0.15 in
     let hc = fsize *' 0.225 in
     let hd = fsize *' 0.325 in
     let hdelta = fsize *' 0.015 in
+    let hmax = hd +' fsize *' 0.08 in
     let v0 = 0pt in
     let va = fsize *' 0.15 in
     let vb = vlen *' 0.98 -' fsize *' 0.05 in
@@ -173,25 +175,25 @@ let pads-normal-bracket is-open fsize =
 
     % 結ぶことになる点の座標．
     let (x00, y00) = (0pt, 0pt) in
-    let (x01, y01) = (hb *' direction, va) in
-    let (x13, y13) = (hb *' direction, minus va) in
-    let (x02, y02) = (hb *' direction, vb) in
-    let (x12, y12) = (hb *' direction, minus vb) in
-    let (x03, y03) = (hd *' direction, vc) in
-    let (x11, y11) = (hd *' direction, minus vc) in
-    let (x04, y04) = (x03 +' hdelta *' direction, y03 -' vdelta) in
-    let (x10, y10) = (x03 +' hdelta *' direction, minus y03 +' vdelta) in
-    let (x05, y05) = (hc *' direction, vb) in
-    let (x09, y09) = (hc *' direction, minus vb) in
-    let (x06, y06) = (hc *' direction, va) in
-    let (x08, y08) = (hc *' direction, minus va) in
-    let (x07, y07) = (ha *' direction, 0pt) in
+    let (x01, y01) = (hb, va) in
+    let (x13, y13) = (hb, minus va) in
+    let (x02, y02) = (hb, vb) in
+    let (x12, y12) = (hb, minus vb) in
+    let (x03, y03) = (hd, vc) in
+    let (x11, y11) = (hd, minus vc) in
+    let (x04, y04) = (x03 +' hdelta, y03 -' vdelta) in
+    let (x10, y10) = (x03 +' hdelta, minus y03 +' vdelta) in
+    let (x05, y05) = (hc, vb) in
+    let (x09, y09) = (hc, minus vb) in
+    let (x06, y06) = (hc, va) in
+    let (x08, y08) = (hc, minus va) in
+    let (x07, y07) = (ha, 0pt) in
 
     % Bezier 曲線を描くときのハンドル
-    let (p00in , q00in ) = ((hb *' 0.15) *' direction, minus va *' 0.1) in
-    let (p00out, q00out) = ((hb *' 0.15) *' direction,       va *' 0.1) in
-    let (p07in , q07in ) = ((hb *' 0.10) *' direction,       va *' 0.1) in
-    let (p07out, q07out) = ((hb *' 0.10) *' direction, minus va *' 0.1) in
+    let (p00in , q00in ) = (hb *' 0.15, minus va *' 0.1) in
+    let (p00out, q00out) = (hb *' 0.15,       va *' 0.1) in
+    let (p07in , q07in ) = (hb *' 0.10,       va *' 0.1) in
+    let (p07out, q07out) = (hb *' 0.10, minus va *' 0.1) in
 
     let (p01in , q01in ) = (0pt, minus fsize *' 0.10) in
     let (p13out, q13out) = (0pt,       fsize *' 0.10) in
@@ -225,13 +227,17 @@ let pads-normal-bracket is-open fsize =
         |> line-to (x13, y13)
         |> close-with-bezier (x13 +' p13out, y13 +' q13out) (x00 +' p00in, y00 +' q00in)
     in
-    fill color path
+    let path = if is-open then path else reflect-x path in
+    let xmin = if is-open then hmin else minus hmax in
+    let xmax = if is-open then hmax else minus hmin in
+    (
+      fill color path,
+      (xmin, va), (xmax, minus va),
+      (fun _ -> (hb -' hmin) *' 0.6)
+    )
 
-  let curly-bracket-l =
-    paren-scheme (gr-curly-bracket true) (pads-normal-bracket true) kern-default
-
-  let curly-bracket-r =
-    paren-scheme (gr-curly-bracket false) (pads-normal-bracket false) kern-default
+  let curly-bracket-l = paren-scheme (gr-curly-bracket true) 0.0
+  let curly-bracket-r = paren-scheme (gr-curly-bracket false) 0.0
 
   let-math \pb = math-paren curly-bracket-l curly-bracket-r
 
@@ -244,18 +250,19 @@ let pads-square-bracket is-open fsize =
     if is-open then (pad-outer, pad-inner, 0pt) else (pad-inner, pad-outer, 0pt)
 
   let gr-square-bracket thk is-open vlen fsize color =
-    let direction = if is-open then 1.0 else 0.0 -. 1.0 in
 
     % 基準となる横の位置 (h) 及び 縦の位置 (v) の座標．
+    let hmin = minus fsize *' 0.12 in
     let h0 = 0pt in
     let ha = vlen *' 0.07 +' fsize *' 0.1 in
+    let hmax = ha +' fsize *' 0.02 in
     let va = vlen in
 
     % 結ぶことになる点の座標．
-    let (x0, y0) = (ha *' direction, va) in
+    let (x0, y0) = (ha, va) in
     let (x1, y1) = (0pt, va) in
     let (x2, y2) = (0pt, minus va) in
-    let (x3, y3) = (ha *' direction, minus va) in
+    let (x3, y3) = (ha, minus va) in
 
     let path =
       start-path (x0, y0)
@@ -264,22 +271,32 @@ let pads-square-bracket is-open fsize =
         |> line-to (x3, y3)
         |> terminate-path
     in
-    stroke thk color path
+    let path = if is-open then path else reflect-x path in
+    let xmin = if is-open then hmin else minus hmax in
+    let xmax = if is-open then hmax else minus hmin in
+    (
+      stroke thk color path,
+      (xmin, va), (xmax, minus va),
+      kern-default
+    )
 
-  let square-bracket is-open =
-    paren-scheme (gr-square-bracket 0.5pt is-open) (pads-square-bracket is-open) kern-default
+  let square-bracket-l = paren-scheme (gr-square-bracket 0.5pt true) 0.0
 
-  let-math \pB = math-paren (square-bracket true) (square-bracket false)
+  let square-bracket-r = paren-scheme (gr-square-bracket 0.5pt false) 0.0
+
+  let-math \pB = math-paren square-bracket-l square-bracket-r
 
   % }}}
 
   % abs-bracket {{{
 
-  let gr-abs-bracket thk vlen fsize color =
+  let gr-abs-bracket thk is-open vlen fsize color =
 
     % 基準となる横の位置 (h) 及び 縦の位置 (v) の座標．
+    let hmin = minus fsize *' 0.18 in
     let h0 = 0pt in
-    let va = vlen -' fsize *' 0.1 in
+    let hmax = fsize *' 0.16 in
+    let va = vlen in
 
     % 結ぶことになる点の座標．
     let (x0, y0) = (0pt, va) in
@@ -290,54 +307,35 @@ let pads-square-bracket is-open fsize =
         |> line-to (x1, y1)
         |> terminate-path
     in
-    stroke thk color path
+    let xmin = if is-open then hmin else minus hmax in
+    let xmax = if is-open then hmax else minus hmin in
+    (
+      stroke thk color path,
+      (xmin, va), (xmax, minus va),
+      (fun _ -> (minus hmin) *' 0.4)
+    )
 
-  let abs-bracket is-open =
-    paren-scheme (gr-abs-bracket 0.5pt) (pads-abs-bracket is-open) kern-default
+  let abs-bracket-l = paren-scheme (gr-abs-bracket 0.5pt true) 0.08
+  let abs-bracket-r = paren-scheme (gr-abs-bracket 0.5pt false) 0.08
 
-  % absの場合は括弧の高さを見た目より少しかさ増ししているため，
-  % 普通に math-paren (abs-bracket true) (abs-bracket false) m でそのまま定義してしまうと
-  % 上添字が付いたときに添字の位置が高くなりすぎてしまう（下添字のときは低くなりすぎる）．
-  % そこで， math-pull-in-scripts を使って強引に添字の位置を調整する．
-  let-math \pabs m =
-    let inner = math-paren (abs-bracket true) (abs-bracket false) m in
-    % 添字をつけるためのダミーの箱．
-    % 幅0ptで，高さと深さは括弧の「見かけ上の」高さ・深さと同じ．
-    let mempty =
-      let mathf ctx =
-        let (_, ht, dp) = get-natural-metrics (embed-math ctx inner) in
-        let fsize = get-font-size ctx in
-        math-phantom MathOrd 0pt (ht -' fsize *' 0.1) (dp -' fsize *' 0.1)
-      in
-      math-in-math MathOrd mathf
-    in
-
-    % 括弧に添え字を直接つけるのではなく，高さ深さを調整したダミーの箱に付ける
-    let mathpullf msub msup = match (msub, msup) with
-      | (None, None) -> mempty
-      | (Some(msub), None) -> ${#mempty_#msub}
-      | (None, Some(msup)) -> ${#mempty^#msup}
-      | (Some(msub), Some(msup)) -> ${#mempty_#msub^#msup}
-    in
-    let msubsup = math-pull-in-scripts MathOpen MathClose mathpullf in
-    ${#inner#msubsup}
-
+  let-math \pabs = math-paren abs-bracket-l abs-bracket-r
   % }}}
 
   % angle-bracket {{{
 
   let gr-angle-bracket thk is-open vlen fsize color =
-    let direction = if is-open then 1.0 else 0.0 -. 1.0 in
 
     % 基準となる横の位置 (h) 及び 縦の位置 (v) の座標．
+    let hmin = minus fsize *' 0.1 in
     let h0 = 0pt in
     let ha = vlen *' 0.375 in
+    let hmax = ha +' fsize *' 0.08 in
     let va = vlen in
 
     % 結ぶことになる点の座標．
-    let (x0, y0) = (ha *' direction, va) in
+    let (x0, y0) = (ha, va) in
     let (x1, y1) = (0pt, 0pt) in
-    let (x2, y2) = (ha *' direction, minus va) in
+    let (x2, y2) = (ha, minus va) in
 
     let path =
       start-path (x0, y0)
@@ -345,12 +343,19 @@ let pads-square-bracket is-open fsize =
         |> line-to (x2, y2)
         |> terminate-path
     in
-    stroke thk color path
+    let path = if is-open then path else reflect-x path in
+    let xmin = if is-open then hmin else minus hmax in
+    let xmax = if is-open then hmax else minus hmin in
+    (
+      stroke thk color path,
+      (xmin, va), (xmax, minus va),
+      (fun y -> y *' 0.3)  % 0.375 より気持ち控えめに
+    )
 
-  let angle-bracket is-open =
-    paren-scheme (gr-angle-bracket 0.5pt is-open) (pads-normal-bracket is-open) kern-default
+  let angle-bracket-l = paren-scheme (gr-angle-bracket 0.5pt true) 0.0
+  let angle-bracket-r = paren-scheme (gr-angle-bracket 0.5pt false) 0.0
 
-  let-math \pangle = math-paren (angle-bracket true) (angle-bracket false)
+  let-math \pangle = math-paren angle-bracket-l angle-bracket-r
 
   % }}}
 
