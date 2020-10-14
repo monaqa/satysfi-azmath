@@ -10,6 +10,12 @@ module AZMathParens : sig
   val round-bracket-r : paren
   val curly-bracket-l : paren
   val curly-bracket-r : paren
+  val square-bracket-l : paren
+  val square-bracket-r : paren
+  val abs-bracket-l: paren
+  val abs-bracket-r: paren
+  val angle-bracket-l: paren
+  val angle-bracket-r: paren
   val empty-bracket-l : paren
   val empty-bracket-r : paren
 
@@ -23,7 +29,7 @@ module AZMathParens : sig
 
 end = struct
 
-  % 便利関数 {{{
+% 便利関数
 
   let minus l = 0pt -' l
 
@@ -33,16 +39,13 @@ end = struct
 
   let half-length hgt dpt hgtaxis fontsize =
     let minhalflen = fontsize *' 0.5 in
-    % let lenappend = fontsize *' 0.1 in
       length-max minhalflen (length-max (hgt -' hgtaxis) (hgtaxis +' dpt))
 
   % 一般的な括弧を描く．
-  let-math \genparen popen pclose inner =
-    math-paren popen pclose inner
+  let-math \genparen popen pclose inner = math-paren popen pclose inner
 
-  % }}}
 
-  % paren-scheme {{{
+% paren-scheme
 
   % 以下の3つの情報から， paren を返す関数
   % graphicf: 欲しい括弧の高さ，フォントサイズ，括弧の色を指定し，
@@ -72,29 +75,18 @@ end = struct
       kinfo)
 
 
-  let empty-bracket-l _ _ _ _ _ = (inline-nil, (fun _ -> 0pt))
-  let empty-bracket-r _ _ _ _ _ = (inline-nil, (fun _ -> 0pt))
-
-  % }}}
-
-  % pads {{{
-let pads-normal-bracket is-open fsize =
-    let (pad-inner, pad-outer) = (fsize *' 0.08, fsize *' 0.1) in
-    if is-open then (pad-outer, pad-inner, 0pt) else (pad-inner, pad-outer, 0pt)
-
-  let pads-abs-bracket is-open fsize =
-    let (pad-inner, pad-outer, pad-top) = (fsize *' 0.16, fsize *' 0.18, fsize *' 0.1) in
-    if is-open then (pad-outer, pad-inner, pad-top) else (pad-inner, pad-outer, pad-top)
-
-  % }}}
-
-  % kerninfo {{{
+% default kerninfo
 
   let kern-default _ = 0pt
 
-  % }}}
 
-  % round-bracket {{{
+% empty-bracket
+
+  let empty-bracket-l _ _ _ _ _ = (inline-nil, (fun _ -> 0pt))
+  let empty-bracket-r _ _ _ _ _ = (inline-nil, (fun _ -> 0pt))
+
+
+% round-bracket
 
   let gr-round-bracket is-open vlen fsize color =
     % 基準となる横の位置 (h) 及び 縦の位置 (v) の座標．
@@ -150,12 +142,10 @@ let pads-normal-bracket is-open fsize =
 
   let round-bracket-l = paren-scheme (gr-round-bracket true) 0.0
   let round-bracket-r = paren-scheme (gr-round-bracket false) 0.0
-
   let-math \p = math-paren round-bracket-l round-bracket-r
 
-  % }}}
 
-  % curly-bracket {{{
+% curly-bracket
 
   let gr-curly-bracket is-open vlen fsize color =
     % 基準となる横の位置 (h) 及び 縦の位置 (v) の座標．
@@ -238,12 +228,10 @@ let pads-normal-bracket is-open fsize =
 
   let curly-bracket-l = paren-scheme (gr-curly-bracket true) 0.0
   let curly-bracket-r = paren-scheme (gr-curly-bracket false) 0.0
-
   let-math \pb = math-paren curly-bracket-l curly-bracket-r
 
-  % }}}
 
-  % square-bracket {{{
+% square-bracket
 
 let pads-square-bracket is-open fsize =
     let (pad-inner, pad-outer) = (fsize *' 0.02, fsize *' 0.12) in
@@ -281,14 +269,11 @@ let pads-square-bracket is-open fsize =
     )
 
   let square-bracket-l = paren-scheme (gr-square-bracket 0.5pt true) 0.0
-
   let square-bracket-r = paren-scheme (gr-square-bracket 0.5pt false) 0.0
-
   let-math \pB = math-paren square-bracket-l square-bracket-r
 
-  % }}}
 
-  % abs-bracket {{{
+% abs-bracket
 
   let gr-abs-bracket thk is-open vlen fsize color =
 
@@ -317,11 +302,10 @@ let pads-square-bracket is-open fsize =
 
   let abs-bracket-l = paren-scheme (gr-abs-bracket 0.5pt true) 0.08
   let abs-bracket-r = paren-scheme (gr-abs-bracket 0.5pt false) 0.08
-
   let-math \pabs = math-paren abs-bracket-l abs-bracket-r
-  % }}}
 
-  % angle-bracket {{{
+
+% angle-bracket
 
   let gr-angle-bracket thk is-open vlen fsize color =
 
@@ -354,10 +338,7 @@ let pads-square-bracket is-open fsize =
 
   let angle-bracket-l = paren-scheme (gr-angle-bracket 0.5pt true) 0.0
   let angle-bracket-r = paren-scheme (gr-angle-bracket 0.5pt false) 0.0
-
   let-math \pangle = math-paren angle-bracket-l angle-bracket-r
-
-  % }}}
 
 
 end
