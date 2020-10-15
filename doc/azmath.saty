@@ -96,7 +96,8 @@ document (|
     }
 
     +eqn-gather(${
-      | f\p{x} = 2x + 3
+      | f\p{x} = 2x + 3,
+      | g\p{x} = 1
       |});
 
     +p{
@@ -230,8 +231,16 @@ document (|
     +eqn-gather(${
       | \paren{\paren{\paren{\paren{\paren{\paren{\paren{x}}}}}}}
       | \p{\p{\p{\p{\p{\p{\p{x}}}}}}}
-      | \(\(\(\(\(\(\(x\)\)\)\)\)\)\)
       |});
+
+    +eqn-gather(${
+      | \sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{x}}}}}}}
+      | \pB{\pB{\pB{\pB{\pB{\pB{\pB{x}}}}}}}
+      |});
+
+    +p{
+      括弧の種類はいくつか用意されています．
+    }
 
     +eqn-gather(${
       | \lim_{x \to 0}\pb{\frac{1}{2} \pb{\pb{\pb{x + 1} + x}^2}}
@@ -239,12 +248,6 @@ document (|
       | \lim_{x \to 0}\pabs{\frac{1}{2} \pabs{\pabs{\pabs{x + 1} + x}^2}}
       | \lim_{x \to 0}\pnorm{\frac{1}{2} \pnorm{\pnorm{\pnorm{x + 1} + x}^2}}
       | \lim_{x \to 0}\pangle{\frac{1}{2} \pangle{\pangle{\pangle{x + 1} + x}^2}}^2
-      |});
-
-    +eqn-gather(${
-      | \sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{x}}}}}}}
-      | \pB{\pB{\pB{\pB{\pB{\pB{\pB{x}}}}}}}
-      | \[\[\[\[\[\[\[x\]\]\]\]\]\]\]
       |});
 
     +p{
@@ -256,7 +259,7 @@ document (|
     +eqn-gather(${
       | \p?:!(10pt){xxx} = \p?:!(15pt){xxx} = \p?:!(30pt){xxx}
       | \p{xxx} = \p-big{xxx} = \p-Big{xxx} = \p-bigg{xxx} = \p-Bigg{xxx}
-      | \lim_{x \to 0}\pangle?:!(16pt){\frac{1}{2} \pangle?:!(16pt){\pangle?:!(16pt){\pangle?:!(16pt){x + 1} + x}^2}}
+      | \lim_{x \to 0}\pangle?:!(12pt){\frac{1}{2} \pangle?:!(8pt){\pangle?:!(16pt){\pangle?:!(12pt){x + 1} + x}^2}}
       |});
 
   >%

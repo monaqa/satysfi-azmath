@@ -70,7 +70,8 @@ end = struct
     half-height-default hgt dpt hgtaxis fontsize +' fontsize *' vpadr
 
   % あたかも中身が hgt-objective の高さを持っているかのように振る舞わせる．
-  let half-height-fixed hgt-objective hgt = half-height-default hgt-objective
+  let half-height-fixed hgt-objective hgt dpt hgtaxis fontsize =
+      length-max (hgt-objective -' hgtaxis) hgtaxis
 
 
   % 一般的な括弧を描く．
