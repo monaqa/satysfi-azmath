@@ -24,6 +24,7 @@ module AZMathParens : sig
   val square-bracket-l : paren
   val square-bracket-r : paren
   val abs-bracket-l    : paren
+  val abs-bracket-m    : paren
   val abs-bracket-r    : paren
   val norm-bracket-l   : paren
   val norm-bracket-r   : paren
@@ -51,6 +52,8 @@ module AZMathParens : sig
   direct \pabs   : [length?; math;] math-cmd
   direct \pnorm  : [length?; math;] math-cmd
   direct \pangle : [length?; math;] math-cmd
+
+  direct \set-builder : [math; math;] math-cmd
 
 end = struct
 
@@ -358,7 +361,33 @@ let pads-square-bracket is-open fsize =
       (fun _ -> (minus hmin) *' 0.4)
     )
 
+  let gr-abs-bracket-m thk vlen fsize color =
+
+    % 基準となる横の位置 (h) 及び 縦の位置 (v) の座標．
+    let hmin = minus fsize *' 0.2 in
+    let h0 = 0pt in
+    let hmax = fsize *' 0.2 in
+    let va = vlen in
+
+    % 結ぶことになる点の座標．
+    let (x0, y0) = (0pt, va) in
+    let (x1, y1) = (0pt, minus va) in
+
+    let path =
+      start-path (x0, y0)
+        |> line-to (x1, y1)
+        |> terminate-path
+    in
+    let xmin = hmin in
+    let xmax = hmax in
+    (
+      [stroke thk color path],
+      (xmin, va), (xmax, minus va),
+      (fun _ -> 0pt)
+    )
+
   let abs-bracket-l = paren-scheme (gr-abs-bracket 0.5pt true) (half-height-with-paddings 0.08)
+  let abs-bracket-m = paren-scheme (gr-abs-bracket-m 0.5pt) (half-height-with-paddings 0.08)
   let abs-bracket-r = paren-scheme (gr-abs-bracket 0.5pt false) (half-height-with-paddings 0.08)
   let-math \pabs ?:ht m =
     let half-height = match ht with
@@ -462,5 +491,14 @@ let pads-square-bracket is-open fsize =
       (paren-scheme (gr-angle-bracket 0.5pt true) half-height)
         (paren-scheme (gr-angle-bracket 0.5pt false) half-height)
           m
+
+
+% brackets
+
+  let-math \set-builder m m-cond =
+    let lparen = paren-scheme (gr-curly-bracket true) half-height-default in
+    let mparen = paren-scheme (gr-abs-bracket-m 0.5pt) half-height-default in
+    let rparen = paren-scheme (gr-curly-bracket false) half-height-default in
+    math-paren-with-middle lparen rparen mparen [m; m-cond]
 
 end
