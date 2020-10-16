@@ -1,0 +1,28 @@
+;; For Satyrographos 0.0.2 series
+(version 0.0.2)
+
+(library
+  (name "azmath")
+  (version "0.0.1")
+  (sources
+    ((packageDir "src")
+     ))
+  (opam "satysfi-azmath.opam")
+  (dependencies
+    (
+     (base ())))
+  (compatibility ((satyrographos "0.0.1"))))
+
+(libraryDoc
+  (name "azmath-doc")
+  (version "0.0.1")
+  (workingDirectory "doc")
+  (build
+    ((satysfi "azmath.saty" "-o" "azmath.pdf")))
+  (sources
+    ((doc "azmath.pdf" "doc/azmath.pdf")))
+  (opam "satysfi-azmath-doc.opam")
+  (dependencies
+    (
+     (enumitem ())
+     )))
