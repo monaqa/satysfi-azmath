@@ -1,4 +1,4 @@
-# [WIP] SATySFi AZmath package
+# SATySFi AZmath package
 
 A SATySFi package containing A-to-Z mathematical commands (in the future).
 

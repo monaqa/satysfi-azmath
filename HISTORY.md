@@ -1,11 +1,10 @@
-# List of available commands/functions
+# History
 
-## Utility
+## v0.0.1 (2020-10-16)
+
+### New commands
 
 * `\neg`
-
-## Equation environments
-
 * `+eqn-gather`
 * `+eqn-align`
 * `+eqn-alignat`
@@ -14,25 +13,16 @@
 * `\eqn-alignat`
 * `\eqn-aligned`
 * `\eqn-cases`
-
-## Accents
-
 * `\hat`
 * `\tilde`
 * `\bar`
 * `\adot`
 * `\ddot`
-
-## Matrices
-
 * `\matrix`
 * `\pmatrix`
 * `\bmatrix`
 * `\vmatrix`
 * `\dmatrix`
-
-## Parentheses
-
 * `\p`
 * `\pb`
 * `\pB`
