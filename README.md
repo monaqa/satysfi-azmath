@@ -4,10 +4,12 @@ A SATySFi package containing A-to-Z mathematical commands (in the future).
 
 ## Features
 
-* Equation enironments
+* Equation environments
 * Accents
 * Matrices
-* Parens
+* Parentheses
+
+All available commands are listed [here](commands.md).
 
 ## Installation
 
