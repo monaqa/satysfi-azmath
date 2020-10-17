@@ -213,6 +213,12 @@ document (|
       | \lim_{x \to 0}\p{\frac{1}{2} \p{\p{\p{x + 1} + x}^2}}^2
       |});
 
+    +eqn-gather(${
+      | \p{\int_0^\infty \frac{\sin x}{\sqrt{x}} \ordd x}^2
+        = \sum_{k=0}^\infty \frac{\p{2k}\!}{2^{2k}\p{k\!}^2} \frac{1}{2k + 1}
+        = \prod_{k=1}^\infty \frac{4k^2}{4k^2 - 1} = \frac{\pi}{2}
+      |});
+
     +p{
       `azmath` で定義された括弧にはいくつかの特徴があります．
     }
@@ -260,6 +266,29 @@ document (|
       | \p?:!(10pt){xxx} = \p?:!(15pt){xxx} = \p?:!(30pt){xxx}
       | \p{xxx} = \p-big{xxx} = \p-Big{xxx} = \p-bigg{xxx} = \p-Bigg{xxx}
       | \lim_{x \to 0}\pangle?:!(12pt){\frac{1}{2} \pangle?:!(8pt){\pangle?:!(16pt){\pangle?:!(12pt){x + 1} + x}^2}}
+      |});
+
+    +p{
+      `\overbrace{m}`, `\underbrace{m}` で数式の上下に波括弧を描く事ができます．
+      数式の一部に注釈を入れたいときなどに使えます．
+    }
+
+    +eqn-gather(
+      let m = ${\frac{\neg b \pm \sqrt{b^2 - 4ac}}{2a}} in
+      ${
+        | x = \overbrace{#m} + \overbrace{\pb{#m} + #m}^{\text!{ここ大事！}}
+        | x = \underbrace{#m + \pb{#m}} + \underbrace{#m}_{\text!{ここ大事！}}
+        |});
+
+    +p{
+      片方が片方に内包される形であれば，入れ子にして使うことも可能です．
+    }
+
+    +eqn-gather(${
+      | x = \underbrace{
+          \overbrace{ a + \underbrace{b + c}_{=0} }^{\text!{foo}}
+          + d + \overbrace{e + f}
+        }_{=0}
       |});
 
   >%

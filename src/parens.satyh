@@ -1,6 +1,7 @@
 % azmath/parens.satyh
 @require: pervasives
 @require: list
+@require: gr
 @import: util
 
 % 欲しい括弧の高さ，フォントサイズ，括弧の色を指定し，
@@ -54,6 +55,8 @@ module AZMathParens : sig
   direct \pangle : [length?; math;] math-cmd
 
   direct \set-builder : [math; math;] math-cmd
+  direct \overbrace : [math] math-cmd
+  direct \underbrace : [math] math-cmd
 
 end = struct
 
@@ -106,8 +109,8 @@ end = struct
     let gr-paren-shifted = gr-paren |> List.map (shift-graphics (minus xmin, hgtaxis)) in
 
     let wid-paren = xmax -' xmin in
-    let hgt-paren = halflen +' hgtaxis in
-    let dpt-paren = halflen -' hgtaxis in
+    let hgt-paren = ymax +' hgtaxis in
+    let dpt-paren = minus (ymin +' hgtaxis) in
     (inline-graphics wid-paren hgt-paren dpt-paren
       (fun pt -> gr-paren-shifted |> List.map (shift-graphics pt)),
       kinfo)
@@ -174,7 +177,7 @@ end = struct
     let xmax = if is-open then hmax else minus hmin in
     (
       [fill color path],
-      (xmin, va), (xmax, minus va),
+      (xmin, minus vlen), (xmax, vlen),
       (fun _ -> (minus hmin) *' 0.6)
     )
 
@@ -192,16 +195,13 @@ end = struct
 
 % curly-bracket
 
-  let gr-curly-bracket is-open vlen fsize color =
-    % 基準となる横の位置 (h) 及び 縦の位置 (v) の座標．
-    let hmin = minus fsize *' 0.06 in
+  let path-curly-bracket vlen fsize =
     let h0 = 0pt in
     let ha = fsize *' 0.10 in
     let hb = fsize *' 0.15 in
     let hc = fsize *' 0.225 in
     let hd = fsize *' 0.325 in
     let hdelta = fsize *' 0.015 in
-    let hmax = hd +' fsize *' 0.08 in
     let v0 = 0pt in
     let va = fsize *' 0.15 in
     let vb = vlen *' 0.98 -' fsize *' 0.05 in
@@ -245,7 +245,7 @@ end = struct
     let (p04out, q04out) = (0pt, 0pt) in
     let (p10in , q10in ) = (0pt, 0pt) in
 
-    let path =
+    let path = 
       start-path (x00, y00)
         |> bezier-to (x00 +' p00out, y00 +' q00out) (x01 +' p01in, y01 +' q01in) (x01, y01)
         |> line-to (x02, y02)
@@ -262,13 +262,23 @@ end = struct
         |> line-to (x13, y13)
         |> close-with-bezier (x13 +' p13out, y13 +' q13out) (x00 +' p00in, y00 +' q00in)
     in
+    (path, (0pt, minus vlen), (hd, vlen))
+
+  let gr-curly-bracket is-open vlen fsize color =
+    % 基準となる横の位置 (h) 及び 縦の位置 (v) の座標．
+    let (path, (hmin, ymin), (hmax, ymax)) = path-curly-bracket vlen fsize in
+
+    % 余白補正
+    let hmin = hmin -' fsize *' 0.06 in  % 開き括弧の前
+    let hmax = hmax +' fsize *' 0.08 in  % 開き括弧の後
+
     let path = if is-open then path else reflect-x path in
     let xmin = if is-open then hmin else minus hmax in
     let xmax = if is-open then hmax else minus hmin in
     (
       [fill color path],
-      (xmin, va), (xmax, minus va),
-      (fun _ -> (hb -' hmin) *' 0.6)
+      (xmin, ymin), (xmax, ymax),
+      (fun _ -> (fsize *' 0.15 -' hmin) *' 0.6)
     )
 
   let curly-bracket-l = paren-scheme (gr-curly-bracket true) half-height-default
@@ -317,7 +327,7 @@ let pads-square-bracket is-open fsize =
     let xmax = if is-open then hmax else minus hmin in
     (
       [stroke thk color path],
-      (xmin, va), (xmax, minus va),
+      (xmin, minus vlen), (xmax, vlen),
       kern-default
     )
 
@@ -357,7 +367,7 @@ let pads-square-bracket is-open fsize =
     let xmax = if is-open then hmax else minus hmin in
     (
       [stroke thk color path],
-      (xmin, va), (xmax, minus va),
+      (xmin, minus vlen), (xmax, vlen),
       (fun _ -> (minus hmin) *' 0.4)
     )
 
@@ -382,7 +392,7 @@ let pads-square-bracket is-open fsize =
     let xmax = hmax in
     (
       [stroke thk color path],
-      (xmin, va), (xmax, minus va),
+      (xmin, minus vlen), (xmax, vlen),
       (fun _ -> 0pt)
     )
 
@@ -432,7 +442,7 @@ let pads-square-bracket is-open fsize =
     let xmax = if is-open then hmax else minus hmin in
     (
       [stroke thk color path1; stroke thk color path2],
-      (xmin, va), (xmax, minus va),
+      (xmin, minus vlen), (xmax, vlen),
       (fun _ -> (minus hmin) *' 0.4)
     )
 
@@ -476,7 +486,7 @@ let pads-square-bracket is-open fsize =
     let xmax = if is-open then hmax else minus hmin in
     (
       [stroke thk color path],
-      (xmin, va), (xmax, minus va),
+      (xmin, minus vlen), (xmax, vlen),
       (fun y -> y *' 0.3)  % 0.375 より気持ち控えめに
     )
 
@@ -493,12 +503,68 @@ let pads-square-bracket is-open fsize =
           m
 
 
-% brackets
+% other commands
 
   let-math \set-builder m m-cond =
     let lparen = paren-scheme (gr-curly-bracket true) half-height-default in
     let mparen = paren-scheme (gr-abs-bracket-m 0.5pt) half-height-default in
     let rparen = paren-scheme (gr-curly-bracket false) half-height-default in
     math-paren-with-middle lparen rparen mparen [m; m-cond]
+
+  let-math \overbrace m =
+    let mathpullf _ sup ctx =
+      let fsize = get-font-size ctx in
+      let clr = get-text-color ctx in
+      let ib = embed-math ctx m in
+      let (wid, _, _) = get-natural-metrics ib in
+      let ib-brace =
+        let (path-brace, (xmin, ymin), (xmax, ymax)) =
+          % ちょっと大きめの fontsize を与えて，括弧を太くするテク
+          path-curly-bracket (wid *' 0.5) (fsize *' 1.5)
+        in
+        let xmin = xmin -' fsize *' 0.05 in
+        let xmax = xmax +' fsize *' 0.25 in
+        % (minus ymax, xmin), (minus ymin, xmax) の箱を持つ brace が出来上がる
+        let path-brace-rotate = Gr.rotate-path (0pt, 0pt) 270.0 path-brace in
+        inline-graphics (ymax -' ymin) (xmax -' xmin) 0pt (fun (x, y) -> [
+          fill clr (path-brace-rotate |> shift-path (x +' ymax, y +' xmax))
+        ])
+      in
+      let ib-with-brace = line-stack-bottom [ib-brace; ib] in
+      let m-with-brace = text-in-math MathOrd (fun _ -> ib-with-brace) in
+      match sup with
+      | Some(sup) -> math-upper m-with-brace sup
+      | None -> m-with-brace
+    in
+    math-pull-in-scripts MathOrd MathOrd
+      (fun sub sup -> math-in-math MathOrd (mathpullf sub sup))
+
+  let-math \underbrace m =
+    let mathpullf sub _ ctx =
+      let fsize = get-font-size ctx in
+      let clr = get-text-color ctx in
+      let ib = embed-math ctx m in
+      let (wid, _, _) = get-natural-metrics ib in
+      let ib-brace =
+        let (path-brace, (xmin, ymin), (xmax, ymax)) =
+          % ちょっと大きめの fontsize を与えて，括弧を太くするテク
+          path-curly-bracket (wid *' 0.5) (fsize *' 1.5)
+        in
+        let xmin = xmin -' fsize *' 0.05 in
+        let xmax = xmax +' fsize *' 0.25 in
+        % (minus ymax, xmin), (minus ymin, xmax) の箱を持つ brace が出来上がる
+        let path-brace-rotate = Gr.rotate-path (0pt, 0pt) 90.0 path-brace in
+        inline-graphics (ymax -' ymin) (xmax -' xmin) 0pt (fun (x, y) -> [
+          fill clr (path-brace-rotate |> shift-path (x +' ymax, y -' xmin))
+        ])
+      in
+      let ib-with-brace = line-stack-top [ib; ib-brace] in
+      let m-with-brace = text-in-math MathOrd (fun _ -> ib-with-brace) in
+      match sub with
+      | Some(sub) -> math-lower m-with-brace sub
+      | None -> m-with-brace
+    in
+    math-pull-in-scripts MathOrd MathOrd
+      (fun sub sup -> math-in-math MathOrd (mathpullf sub sup))
 
 end
