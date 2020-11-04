@@ -45,6 +45,14 @@ module AZMathEquation : sig
 
 end = struct
 
+% convenient functions
+
+  let ib-annotation ?:ht key =
+    let ht = ht |> Option.from 0pt in
+    inline-graphics 0pt 0pt 0pt (fun (x, y) -> (
+      let () = register-destination key (x, y +' ht) in []
+    ))
+
   % param/counter {{{
 
   let allow-display-break = AZMathParam.make true
@@ -158,15 +166,29 @@ end = struct
 
   % label-format のデフォルト値。
   let default-labelfmt ctx label-meta =
-    let tagstr = label-meta#tag in
-    let it = match tagstr with
-      | Some(tagstr) -> embed-string tagstr
-      | None -> (
+    let tagstr = match label-meta#tag with
+      | Some(tag) -> tag  % tag が指定されていたらそれを使う
+      | None -> (  % デフォルトでは連番の数字
           let v = ctr |> Counter.inc in
-          embed-string (arabic v)
+          arabic v
       )
     in
-    Some(read-inline ctx {(#it;)})
+    let ib-tag =
+      let it = embed-string tagstr in
+      read-inline ctx {(#it;)}
+    in
+    % 相互参照への登録
+    let ib-ref = match label-meta#label with
+      | None -> inline-nil
+      | Some(label) ->
+          let (_, ht, _) = get-natural-metrics ib-tag in
+          let () = register-cross-reference (`eq:` ^ label ^ `:num`) tagstr in
+          (ib-annotation ?:ht (`eq:` ^ label))
+            ++ hook-page-break ( fun pbinfo _ ->
+              register-cross-reference (`eq:` ^ label ^ `:page`) (arabic pbinfo#page-number)
+            )
+    in
+    Some(ib-ref ++ ib-tag)
 
   let nolabel ctx label-meta =
     match label-meta#label with
@@ -227,14 +249,14 @@ end = struct
 
     % 数式の inline-boxes とtag情報を受け取り、block-boxes を返す。
     let align-eqn-f ib-meta =
-      let (ib, eqn-meta) = ib-meta in
+      let (ib-m, eqn-meta) = ib-meta in
       % タグの inline-boxes を取得
       if eqn-meta#no-label-flag then
-        align-math ctx ib
+        align-math ctx ib-m
       else
         match (labelfmt ctx eqn-meta) with
-        | None -> align-math ctx ib
-        | Some(ib-tag) -> align-math-tag ctx ib ib-tag
+        | None -> align-math ctx ib-m
+        | Some(ib-tag) -> align-math-tag ctx ib-m ib-tag
     in
 
     let bb-lst = ib-meta-lst |> List.map align-eqn-f |> List.concat in

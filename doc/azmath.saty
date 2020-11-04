@@ -118,13 +118,13 @@ document (|
       |});
 
     +eqn-gather-test?:(sbr-labelfmt)(${
-      | f\p{x} = 2x + 3, \label?:!(`*`)!(`aaa`)
+      | f\p{x} = 2x + 3, \label?:!(`*`)!(`bbb`)
       | g\p{x} = 1
       | h\p{x} = 1 \label!(`fuga`)
       |});
 
     +eqn-gather-test?:(nolabel)(${
-      | f\p{x} = 2x + 2x + 2x + 2x + 33332x + 3, \label?:!(`very long long long long tag`)!(`aaa`)
+      | f\p{x} = 2x + 2x + 2x + 2x + 33332x + 3, \label?:!(`very long long long long tag`)!(`ccc`)
       | g\p{x} = 1
       | g\p{x} = 1
       | g\p{x} = 1
@@ -146,19 +146,23 @@ document (|
       | g\p{x} = 1
       | g\p{x} = 1
       | g\p{x} = 1
-      | h\p{x} = 1 \label!(`fuga`)
+      | h\p{x} = 1 \label!(`piyo`)
       |});
 
     +eqn-gather-test?:(nolabel)(${
-      | f\p{x} = 2x + 3, \label?:!(`*`)!(`aaa`)
+      | f\p{x} = 2x + 3, \label?:!(`*`)!(`teka`)
       | g\p{x} = 1
-      | h\p{x} = 1 \label!(`fuga`)
+      | h\p{x} = 1 \label!(`pika`)
       |});
 
     +eqn-gather(${
       | f\p{x} = 2x + 3,
       | g\p{x} = 1
       |});
+
+    +p{
+      p.\ref-page(`eq:ccc`); にある (\ref(`eq:ccc`);) を見てください。やばくね？
+    }
 
     +p{
       `+eqn-align` コマンドでも複数の数式を表示できますが，
