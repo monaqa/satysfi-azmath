@@ -8,6 +8,21 @@
 
 let-block ctx +ctx ctxf bt = read-block (ctxf ctx) bt
 
+let () = AZMathEquation.allow-display-break |> AZMathParam.set true
+
+let sbr-labelfmt ctx label-meta =
+  let tagstr = label-meta#tag in
+  let it = match tagstr with
+    | Some(tagstr) -> embed-string tagstr
+    | None -> (
+        let v = AZMathEquation.ctr |> Counter.inc in
+        embed-string (arabic v)
+    )
+  in
+  Some(read-inline ctx {[[#it;]]})
+
+let nolabel = AZMathEquation.nolabel
+
 let document record content = StdJaBook.document record '<%
   +ctx(fun ctx -> (
     let fsize = get-font-size ctx in
@@ -94,6 +109,51 @@ document (|
       複数の式を並べる際に便利です．
       現在は全ての行に式番号がつくようになっています．
     }
+
+    +eqn-gather-test(${
+      | f\p{x} = 2x + 3, \label?:!(`*`)!(`aaa`)
+      | g\p{x} = 1
+      | h\p{x} = 1 \label!(`hoge`)
+      | j\p{x} = 1 \notag
+      |});
+
+    +eqn-gather-test?:(sbr-labelfmt)(${
+      | f\p{x} = 2x + 3, \label?:!(`*`)!(`aaa`)
+      | g\p{x} = 1
+      | h\p{x} = 1 \label!(`fuga`)
+      |});
+
+    +eqn-gather-test?:(nolabel)(${
+      | f\p{x} = 2x + 2x + 2x + 2x + 33332x + 3, \label?:!(`very long long long long tag`)!(`aaa`)
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | g\p{x} = 1
+      | h\p{x} = 1 \label!(`fuga`)
+      |});
+
+    +eqn-gather-test?:(nolabel)(${
+      | f\p{x} = 2x + 3, \label?:!(`*`)!(`aaa`)
+      | g\p{x} = 1
+      | h\p{x} = 1 \label!(`fuga`)
+      |});
 
     +eqn-gather(${
       | f\p{x} = 2x + 3,

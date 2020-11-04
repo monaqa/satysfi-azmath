@@ -6,15 +6,33 @@
 @import: util
 @import: common/matrix
 @import: common/counter
+@import: common/param
 @import: parens
 @import: matrices
 
+type labelmeta = (|
+  tag: string option;
+  label: string option;
+  no-label-flag: bool;
+|)
+type labelfmt = context -> labelmeta -> inline-boxes option
+
 module AZMathEquation : sig
 
+% パラメータ・カウンタ
+  val allow-display-break: bool AZMathParam.t
   val ctr : Counter.t
-  val set-labelf : (int -> int -> inline-text) -> unit
+
+% ラベル指定
+  % 数式に付ける相互参照用のラベルを指定する。組版上の tag も変えられる。
+  direct \label : [string?; string] math-cmd
+  % このコマンドが付いた行だけ tag を強制的に付けない。
+  direct \notag : [] math-cmd
+  % \label コマンドがつかない限り、基本的にラベルを付けないフォーマット。
+  val nolabel : labelfmt
 
   direct +eqn-gather : [math list;] block-cmd
+  direct +eqn-gather-test : [labelfmt?;math list;] block-cmd
   direct +eqn-align : [math list;] block-cmd
   direct +eqn-alignat : [int; math list;] block-cmd
   direct \eqn-gather : [math list;] inline-cmd
@@ -27,7 +45,9 @@ module AZMathEquation : sig
 
 end = struct
 
-  % counter {{{
+  % param/counter {{{
+
+  let allow-display-break = AZMathParam.make true
 
   let ctr = Counter.make 0 []
 
@@ -40,8 +60,6 @@ end = struct
       {(#it-value;)}
     in
     Ref.make value-to-label
-
-  let set-labelf lf = labelf |> Ref.set lf
 
   let create-label-list n-eq =
     let int-to-ib = Ref.get labelf in
@@ -96,6 +114,131 @@ end = struct
     inline-graphics 0pt max-height max-depth (fun (x, y) -> [
       draw-text (x -' w, y) inner
     ])
+
+  % default value of labelmeta
+  let param-label-meta = AZMathParam.make (|
+    tag = None;
+    label = None;
+    no-label-flag = false;
+  |)
+
+  let-math \notag =
+    let mathf ctx =
+      let eqn-meta = param-label-meta |> AZMathParam.get in
+      let () =
+        param-label-meta |> AZMathParam.set (|
+          eqn-meta with
+            no-label-flag = true;
+        |)
+      in
+      ${}
+    in
+    text-in-math MathOrd (fun ctx -> embed-math ctx (mathf ctx))
+
+  let-math \label ?:tagstr label =
+    let mathf ctx =
+      let eqn-meta = param-label-meta |> AZMathParam.get in
+      let () =
+        param-label-meta |> AZMathParam.set (|
+          eqn-meta with
+            tag = tagstr;
+            label = Some(label)
+        |)
+      in
+      ${}
+    in
+    text-in-math MathOrd (fun ctx -> embed-math ctx (mathf ctx))
+
+  % embed-math を行いつつ、内部で設定された meta 情報を返す。
+  let embed-math-and-get-meta ctx m =
+    let ib = embed-math ctx m in
+    let eqn-meta = param-label-meta |> AZMathParam.get in
+    let () = param-label-meta |> AZMathParam.discard in  % 初期値に戻す
+    (ib, eqn-meta)
+
+  % label-format のデフォルト値。
+  let default-labelfmt ctx label-meta =
+    let tagstr = label-meta#tag in
+    let it = match tagstr with
+      | Some(tagstr) -> embed-string tagstr
+      | None -> (
+          let v = ctr |> Counter.inc in
+          embed-string (arabic v)
+      )
+    in
+    Some(read-inline ctx {(#it;)})
+
+  let nolabel ctx label-meta =
+    match label-meta#label with
+    | None -> None
+    | Some(_) -> default-labelfmt ctx label-meta
+
+  let align-math ctx ib-m =
+    let (wid-ib, _, _) = get-natural-metrics ib-m in
+    let wid-line = get-text-width ctx in
+    let wid-before-eqn = (wid-line -' wid-ib) *' 0.5 in
+      [
+        line-break (AZMathParam.get allow-display-break) true ctx (
+          (inline-skip wid-before-eqn) ++ ib-m ++ (inline-skip wid-before-eqn)
+        )
+      ]
+
+  % 数式とタグの inline-boxes を受け取り、 block-boxes のリストを返す。
+  let align-math-tag ctx ib-m ib-tag =
+    let (wid-ib, _, _) = get-natural-metrics ib-m in
+    let (wid-tag, _, _) = get-natural-metrics ib-tag in
+    let wid-line = get-text-width ctx in
+
+    let wid-before-eqn = (wid-line -' wid-ib) *' 0.5 in
+    let wid-space-bwn-eqn-tag = wid-before-eqn -' wid-tag in
+
+    if wid-space-bwn-eqn-tag >' 0pt then
+      % 数式とタグがぶつからない場合
+      [
+        line-break (AZMathParam.get allow-display-break) true ctx (
+          (inline-skip wid-before-eqn) ++ ib-m
+            ++ (inline-skip wid-space-bwn-eqn-tag) ++ ib-tag
+        )
+      ]
+    else
+      % ぶつかる場合
+      [
+        line-break (AZMathParam.get allow-display-break) false ctx (
+          (inline-skip wid-before-eqn) ++ ib-m ++ (inline-skip wid-before-eqn)
+        );
+        line-break false true ctx (
+          (inline-skip (wid-line -' wid-tag)) ++ ib-tag
+        );
+      ]
+
+
+  % gather 環境。
+  let-block ctx +eqn-gather-test ?:labelfmt mlst =
+    let labelfmt = labelfmt |> Option.from default-labelfmt in
+
+    % (inline-boxes * labelmeta) list
+    let ib-meta-lst = mlst |> List.map (embed-math-and-get-meta ctx) in
+
+    % 数式間の縦の余白を規定する
+    let ctx =
+      let fsize = get-font-size ctx in
+      ctx |> set-paragraph-margin (fsize *' 0.6) (fsize *' 0.6)
+    in
+
+    % 数式の inline-boxes とtag情報を受け取り、block-boxes を返す。
+    let align-eqn-f ib-meta =
+      let (ib, eqn-meta) = ib-meta in
+      % タグの inline-boxes を取得
+      if eqn-meta#no-label-flag then
+        align-math ctx ib
+      else
+        match (labelfmt ctx eqn-meta) with
+        | None -> align-math ctx ib
+        | Some(ib-tag) -> align-math-tag ctx ib ib-tag
+    in
+
+    let bb-lst = ib-meta-lst |> List.map align-eqn-f |> List.concat in
+    bb-lst |> List.fold-left (+++) block-nil
 
 
   let-block ctx +eqn-gather mlst =
