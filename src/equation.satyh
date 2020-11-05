@@ -11,23 +11,50 @@
 @import: parens
 @import: matrices
 
+% 別行立て数式につけるメタ情報。
 type labelmeta = (|
   tag: string option;
   label: string option;
   no-label-flag: bool;
   keep-page-flag: bool;
 |)
+
 type labelfmt = context -> labelmeta -> inline-boxes option
 
 module AZMathEquation : sig
 
+  type labelmeta
+
 % パラメータ・カウンタ
+  % 別行立て数式環境の途中で改ページを許可するか。
   val allow-display-break: bool AZMathParam.t
+  % 別行立て数式同士の縦の余白。
   val vmargin-between-eqn: (context -> length) AZMathParam.t
+  % タグが数式の下に潜った時、その数式とタグの間に空ける縦方向の余白。
   val vmargin-between-eqn-and-tag: (context -> length) AZMathParam.t
+  % 数式とタグの間に最低限なければならない余白の大きさ。
+  % これを確保できそうにない場合はタグが数式の下に潜る。
   val min-gap-between-eqn-and-tag: (context -> length) AZMathParam.t
 
+  % 数式番号のカウンタ。
   val ctr : Counter.t
+
+% 数式環境
+  % 複数の式を中央揃えにする。
+  direct +eqn-gather : [labelfmt?;math list;] block-cmd
+  direct \eqn-gather : [math list;] inline-cmd
+  % マーカーを付けた位置で複数の式を揃える。
+  direct +eqn-align  : [labelfmt?; math list;] block-cmd
+  direct \eqn-align  : [math list;] inline-cmd
+  % 横並びになった複数の式を揃える。
+  direct +eqn-alignat : [int; math list;] block-cmd
+  direct \eqn-alignat : [int; math list;] inline-cmd
+
+% 数式の埋め込み
+  % 数式内部で \eqn-align
+  direct \eqn-aligned : [math list;] math-cmd
+  % 場合わけ
+  direct \eqn-cases : [math list;] math-cmd
 
 % ラベル指定
   % 数式に付ける相互参照用のラベルを指定する。組版上の tag も変えられる。
@@ -42,17 +69,6 @@ module AZMathEquation : sig
   % \label コマンドがつかない限り、基本的にラベルを付けないフォーマット。
   val notag : labelfmt
 
-  direct +eqn-gather : [labelfmt?;math list;] block-cmd
-  direct +eqn-align : [labelfmt?; math list;] block-cmd
-  direct +eqn-alignat : [int; math list;] block-cmd
-  direct \eqn-gather : [math list;] inline-cmd
-  direct \eqn-align : [math list;] inline-cmd
-  direct \eqn-alignat : [int; math list;] inline-cmd
-  direct \eqn-aligned : [math list;] math-cmd
-  direct \eqn-cases : [math list;] math-cmd
-  % direct \alignedat : [int; math list;] math-cmd
-  % direct \alignedat : [int; math list;] math-cmd
-
 end = struct
 
 % convenient functions
@@ -62,64 +78,6 @@ end = struct
     inline-graphics 0pt 0pt 0pt (fun (x, y) -> (
       let () = register-destination key (x, y +' ht) in []
     ))
-
-  % param/counter {{{
-
-  let allow-display-break = AZMathParam.make true
-  let vmargin-between-eqn = AZMathParam.make (fun ctx -> (get-font-size ctx) *' 0.6)
-  let vmargin-between-eqn-and-tag = AZMathParam.make (fun ctx -> (get-font-size ctx) *' 0.3)
-  let min-gap-between-eqn-and-tag = AZMathParam.make (fun ctx -> 2pt)
-
-  let ctr = Counter.make 0 []
-
-  let labelf =
-    let value-to-label base idx =
-      % base: 数式開始時点でのカウンタの値．
-      % idx: 対象の数式の何番目にあるか（0 始まり）
-      let _ = ctr |> Counter.inc in
-      let it-value = embed-string (arabic (base + idx)) in
-      {(#it-value;)}
-    in
-    Ref.make value-to-label
-
-  let create-label-list n-eq =
-    let int-to-ib = Ref.get labelf in
-    % let _ = ctr |> Counter.inc in
-    let ctr-value = Counter.get ctr in
-    % let _ = ctr |> Counter.add (n-eq - 1) in
-    let rangelst = range 1 n-eq in
-    List.map (int-to-ib ctr-value) rangelst
-  % }}}
-
-  let-rec map-each f-lst lst =
-    match f-lst with
-    | [] -> []
-    | f1::fs -> (match lst with
-                 | [] -> []
-                 | x1::xs ->  (f1 x1) :: (map-each fs xs))
-
-  let math-to-aligned-ib ctx idx m mprevopt mnextopt =
-    let lengap = get-font-size ctx *' 2. in
-
-    let ibm = embed-math ctx m in
-    let ib =
-      match mnextopt with
-      | None -> ibm
-      | Some(mnext) ->
-          let ibspaceopt = space-between-maths ctx m mnext in
-          ( match ibspaceopt with
-            | None          -> ibm
-            | Some(ibspace) -> ibm ++ ibspace
-          )
-    in
-
-    if idx mod 2 == 0 then
-      inline-fil ++ ib
-    else
-      match mnextopt with
-      | None    -> ib ++ inline-fil
-      | Some(_) -> ib ++ inline-fil ++ inline-skip lengap
-
 
   let create-max-height-vphantom lst-ib inner =
     % inline-boxes のリストに対し，それらの最大の高さ/最大の深さを求め，
@@ -136,7 +94,17 @@ end = struct
       draw-text (x -' w, y) inner
     ])
 
-  % default value of labelmeta
+% parameter
+  let allow-display-break = AZMathParam.make true
+  let vmargin-between-eqn = AZMathParam.make (fun ctx -> (get-font-size ctx) *' 0.6)
+  let vmargin-between-eqn-and-tag = AZMathParam.make (fun ctx -> (get-font-size ctx) *' 0.3)
+  let min-gap-between-eqn-and-tag = AZMathParam.make (fun ctx -> 2pt)
+
+% counter
+  let ctr = Counter.make 0 []
+
+% parameter for extracting meta information from math text
+  % metadata を表すパラメータ。
   let param-label-meta = AZMathParam.make (|
     tag = None;
     label = None;
@@ -144,6 +112,8 @@ end = struct
     keep-page-flag = false;
   |)
 
+  % metadata を更新するコマンドたち。
+  % text-in-math を使わないとうまくいかない。
   let-math \notag =
     let mathf ctx =
       let eqn-meta = param-label-meta |> AZMathParam.get in
@@ -186,12 +156,7 @@ end = struct
 
   let-math \tbc = ${\notag\keeppage}
 
-  % embed-math を行いつつ、内部で設定された meta 情報を返す。
-  let embed-math-and-get-meta ctx m =
-    let ib = embed-math ctx m in
-    let eqn-meta = param-label-meta |> AZMathParam.get in
-    let () = param-label-meta |> AZMathParam.discard in  % 初期値に戻す
-    (ib, eqn-meta)
+% labelfmt
 
   % label-format のデフォルト値。
   let default-labelfmt ctx label-meta =
@@ -223,6 +188,15 @@ end = struct
     match label-meta#label with
     | None -> None
     | Some(_) -> default-labelfmt ctx label-meta
+
+% +eqn-gather
+
+  % embed-math を行いつつ、内部で設定された meta 情報を返す。
+  let embed-math-and-get-meta ctx m =
+    let ib = embed-math ctx m in
+    let eqn-meta = param-label-meta |> AZMathParam.get in
+    let () = param-label-meta |> AZMathParam.discard in  % 初期値に戻す
+    (ib, eqn-meta)
 
   let align-math ctx meta ib-m =
     let (wid-ib, _, _) = get-natural-metrics ib-m in
@@ -280,7 +254,6 @@ end = struct
         );
       ]
 
-  % gather 環境
   let-block ctx +eqn-gather ?:labelfmt mlst =
     let labelfmt = labelfmt |> Option.from default-labelfmt in
 
@@ -307,6 +280,7 @@ end = struct
     embed-block-breakable ctx (read-block ctx '<+eqn-gather(mlst);>)
       ++ omit-skip-after
 
+% +eqn-align
 
   let-block ctx +eqn-align ?:labelfmt mlst =
 
@@ -406,25 +380,29 @@ end = struct
       embed-block-breakable ctx (read-block ctx '<+eqn-align(mlst);>)
         ++ omit-skip-after
 
-  let-math \eqn-aligned mlst =
-    let embedf ctx =
-      let vlen = 4pt in
+% +eqn-alignat
 
-      let math-matrix = AZTypeMatrix.from-list 2 ${} mlst in
-      let ib-matrix = AZTypeMatrix.map-rowidx-adjacent (math-to-aligned-ib ctx) math-matrix in
+  let math-to-aligned-ib ctx idx m mprevopt mnextopt =
+    let lengap = get-font-size ctx *' 2. in
 
-      let cell-matrix =
-        AZTypeMatrix.map (fun ib -> NormalCell((0pt, 0pt, vlen, vlen), ib)) ib-matrix
-      in
-
-      let rulef _ _ = [] in
-      let ib-tabular = tabular (AZTypeMatrix.to-llist cell-matrix) rulef in
-
-      let margin = get-font-size ctx *' 1.0 in
-      let ctx-eqn = ctx |> set-paragraph-margin margin margin in
-      ib-tabular
+    let ibm = embed-math ctx m in
+    let ib =
+      match mnextopt with
+      | None -> ibm
+      | Some(mnext) ->
+          let ibspaceopt = space-between-maths ctx m mnext in
+          ( match ibspaceopt with
+            | None          -> ibm
+            | Some(ibspace) -> ibm ++ ibspace
+          )
     in
-    text-in-math MathOrd embedf
+
+    if idx mod 2 == 0 then
+      inline-fil ++ ib
+    else
+      match mnextopt with
+      | None    -> ib ++ inline-fil
+      | Some(_) -> ib ++ inline-fil ++ inline-skip lengap
 
   let-block ctx +eqn-alignat ncol mlst =
 
@@ -448,6 +426,30 @@ end = struct
     inline-fil ++
       embed-block-breakable ctx (read-block ctx '<+eqn-alignat(ncol)(mlst);>)
         ++ omit-skip-after
+
+% \eqn-aligned
+
+  let-math \eqn-aligned mlst =
+    let embedf ctx =
+      let vlen = 4pt in
+
+      let math-matrix = AZTypeMatrix.from-list 2 ${} mlst in
+      let ib-matrix = AZTypeMatrix.map-rowidx-adjacent (math-to-aligned-ib ctx) math-matrix in
+
+      let cell-matrix =
+        AZTypeMatrix.map (fun ib -> NormalCell((0pt, 0pt, vlen, vlen), ib)) ib-matrix
+      in
+
+      let rulef _ _ = [] in
+      let ib-tabular = tabular (AZTypeMatrix.to-llist cell-matrix) rulef in
+
+      let margin = get-font-size ctx *' 1.0 in
+      let ctx-eqn = ctx |> set-paragraph-margin margin margin in
+      ib-tabular
+    in
+    text-in-math MathOrd embedf
+
+% \eqn-cases
 
   let-math \eqn-cases mlst =
     let aligner i j ib =
