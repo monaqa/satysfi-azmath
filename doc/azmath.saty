@@ -295,7 +295,7 @@ document (|
     こちらも全ての行に式番号がつくようになっています．
   }
 
-  +eqn-align-test(${
+  +eqn-align(${
     | 2x + 3 |= x + 1 \tbc
     | 2x - x |= 1 - 3 \tbc
     | x      |= -2
@@ -506,6 +506,32 @@ document (|
     | A |= \vmatrix!(2){| a | b | c | d |}
     | A |= \dmatrix!(2){| a | b | c | d |}
     |});
+
+
+  % 別行立て数式の途中で改ページ可能
+  +eqn-gather(
+    let-math \term n = ${\frac{x^{#n}}{#n\!}} in
+    ${
+    | e^x = 1 + \term{1} + \term{2} + \term{3} + \term{4} + \term{5} + \cdots
+    % 数式が長くなると自動でタグが下に移動
+    | e^x = 1 + \term{1} + \term{2} + \term{3} + \term{4}
+        + \term{5} + \term{6} + \term{7} + \term{8}
+        + \term{9} + \term{10} + \term{11} + \term{12} + \cdots
+    % \label で相互参照可能なラベルを付与
+    | \cos x = 1 - \term{2} + \term{4} - \term{6} + \cdots \label!(`eqn-cos`)
+    | \sin x = x - \term{3} + \term{5} - \term{7} + \cdots \label?:!(`sinの式やで`)!(`eqn-sin`)
+    |});
+
+  +p{皆はどの式が好き？僕は (\ref(`eq:eqn-cos`);) と (\ref(`eq:eqn-sin`);)が好き！}
+
+  +eqn-align(
+    let-math \term n = ${\frac{x^{#n}}{#n\!}} in
+    ${
+    % \notag: タグを付けない、 \keeppage: 式の直後の位置で改ページしない
+    | e^x |= \sum_{k=0}^\infty \term{k}  \notag\keeppage
+    | |= 1 + \term{1} + \term{2} + \term{3} + \term{4} + \term{5} + \cdots
+    |});
+
 
 >%
 
