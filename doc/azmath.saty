@@ -9,6 +9,7 @@
 let-block ctx +ctx ctxf bt = read-block (ctxf ctx) bt
 
 let () = AZMathEquation.allow-display-break |> AZMathParam.set true
+% let () = AZMathEquation.vmargin-between-eqn |> AZMathParam.set (fun _ -> 20pt)
 
 let sbr-labelfmt ctx label-meta =
   let tagstr = label-meta#tag in
@@ -21,7 +22,7 @@ let sbr-labelfmt ctx label-meta =
   in
   Some(read-inline ctx {[[#it;]]})
 
-let nolabel = AZMathEquation.nolabel
+let notag = AZMathEquation.notag
 
 let document record content = StdJaBook.document record '<%
   +ctx(fun ctx -> (
@@ -100,292 +101,414 @@ document (|
 >%
 
 
-+section{AZmath の機能}<%
 
-  +subsection{数式環境}<%
++section{数式環境}<%
+
+  +p{
+    \SATySFi; は\LaTeX;と異なり、本来「環境 (environment)」と呼ぶべき概念はありません。
+    しかし、ここでは `\alpha` や `\sum` など数式内で用いるコマンドと区別するため、
+    インラインテキストまたはブロックテキストから数式に入るためのコマンドのことを
+    便宜上「数式環境」と呼ぶことにします。
+  }
+
+    +subsection{数式環境の一覧}<%
 
     +p{
       `+eqn-gather` コマンドにより，複数の数式を中央揃えで表示することができます．
-      複数の式を並べる際に便利です．
-      現在は全ての行に式番号がつくようになっています．
     }
 
-    +eqn-gather-test(${
-      | f\p{x} = 2x + 3, \label?:!(`*`)!(`aaa`)
-      | g\p{x} = 1
-      | h\p{x} = 1 \label!(`hoge`)
-      | j\p{x} = 1 \notag
-      |});
-
-    +eqn-gather-test?:(sbr-labelfmt)(${
-      | f\p{x} = 2x + 3, \label?:!(`*`)!(`bbb`)
-      | g\p{x} = 1
-      | h\p{x} = 1 \label!(`fuga`)
-      |});
-
-    +eqn-gather-test?:(nolabel)(${
-      | f\p{x} = 2x + 2x + 2x + 2x + 33332x + 3, \label?:!(`very long long long long tag`)!(`ccc`)
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | g\p{x} = 1
-      | h\p{x} = 1 \label!(`piyo`)
-      |});
-
-    +eqn-gather-test?:(nolabel)(${
-      | f\p{x} = 2x + 3, \label?:!(`*`)!(`teka`)
-      | g\p{x} = 1
-      | h\p{x} = 1 \label!(`pika`)
-      |});
-
+    +example(```
     +eqn-gather(${
-      | f\p{x} = 2x + 3,
-      | g\p{x} = 1
+      | \p{x + y}^2 = x^2 + 2xy + y^2,
+      | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab,
+      | \p{x + y}\p{x - y} = x^2 - y^2.
       |});
-
-    +p{
-      p.\ref-page(`eq:ccc`); にある (\ref(`eq:ccc`);) を見てください。やばくね？
-    }
-
-    +p{
-      `+eqn-align` コマンドでも複数の数式を表示できますが，
-      `+eqn-gather` とは異なり，ユーザが定めた位置で式を揃えることができます．
-      同値変形などに便利です．
-      こちらも全ての行に式番号がつくようになっています．
-    }
-
-    +eqn-align(${
-      | 2x + 3 |= x + 1
-      | 2x - x |= 1 - 3
-      | x      |= -2
+    ```) <%
+    +eqn-gather(${
+      | \p{x + y}^2 = x^2 + 2xy + y^2,
+      | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab,
+      | \p{x + y}\p{x - y} = x^2 - y^2.
       |});
+    >%
 
     +p{
-      その他， `+eqn-alignat` や `\eqn-aligned` (math command) といったコマンドもあります．
-      `\eqn-cases` を用いて場合分けを行うこともできます．
+      ご覧のように、 `+eqn-gather` を用いて並べた式にはデフォルトで数式番号が付きます。
     }
-
-    +math(${
-      y = \eqn-cases{
-      | x      | \p{x \geq 0}
-      | \neg x | \p{x < 0}
-      |}
-      });
 
   >%
 
-  +subsection{アクセント}<%
-
+  +subsection{数式のタグ}<%
     +p{
-      数式にアクセントを追加することができます．
+      数式には自動で数式番号がつくという話をしました。
+      番号のつく数式には、以下のようにラベルを付与することができます。
     }
 
+    +example(```
     +eqn-gather(${
-      | \hat{a}, \hat{b}, \hat{c}, \hat{d}, \hat{e}, \hat{f},
-        \hat{g}, \hat{h}, \hat{i}, \hat{j}, \hat{k}, \hat{l}, \hat{m},
-        \hat{n}, \hat{o}, \hat{p}, \hat{q}, \hat{r}, \hat{s},
-        \hat{t}, \hat{u}, \hat{v}, \hat{w}, \hat{x}, \hat{y}, \hat{z},
-      | \hat{A}, \hat{B}, \hat{C}, \hat{D}, \hat{E}, \hat{F},
-        \hat{G}, \hat{H}, \hat{I}, \hat{J}, \hat{K}, \hat{L}, \hat{M},
-        \hat{N}, \hat{O}, \hat{P}, \hat{Q}, \hat{R}, \hat{S},
-        \hat{T}, \hat{U}, \hat{V}, \hat{W}, \hat{X}, \hat{Y}, \hat{Z},
-      | \hat{\alpha}, \hat{\beta}, \hat{\gamma}, \hat{\delta}, \hat{\epsilon}, \hat{\zeta},
-        \hat{\eta}, \hat{\theta}, \hat{\iota}, \hat{\kappa}, \hat{\lambda}, \hat{\mu},
-        \hat{\nu}, \hat{\xi}, \hat{\omicron}, \hat{\pi}, \hat{\rho}, \hat{\sigma},
-        \hat{\tau}, \hat{\upsilon}, \hat{\phi}, \hat{\chi}, \hat{\psi}, \hat{\omega},
-      | \hat{\Alpha}, \hat{\Beta}, \hat{\Gamma}, \hat{\Delta}, \hat{\Epsilon}, \hat{\Zeta},
-        \hat{\Eta}, \hat{\Theta}, \hat{\Iota}, \hat{\Kappa}, \hat{\Lambda}, \hat{\Mu},
-        \hat{\Nu}, \hat{\Xi}, \hat{\Omicron}, \hat{\Pi}, \hat{\Rho}, \hat{\Sigma},
-        \hat{\Tau}, \hat{\Upsilon}, \hat{\Phi}, \hat{\Chi}, \hat{\Psi}, \hat{\Omega}.
+      | \p{x + y}^2 = x^2 + 2xy + y^2, \label!(`formula1`)
+      | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab, \label!(`formula2`)
+      | \p{x + y}\p{x - y} = x^2 - y^2. \label!(`formula3`)
       |});
-
-    +p{
-      他のアクセントについても同様に付けることができます．
-    }
-
+    ```) <%
     +eqn-gather(${
-      | \tilde{a}, \tilde{b}, \tilde{c}, \tilde{d}, \tilde{e}, \tilde{f},
-        \tilde{g}, \tilde{h}, \tilde{i}, \tilde{j}, \tilde{k}, \tilde{l}, \tilde{m},
-        \tilde{n}, \tilde{o}, \tilde{p}, \tilde{q}, \tilde{r}, \tilde{s},
-        \tilde{t}, \tilde{u}, \tilde{v}, \tilde{w}, \tilde{x}, \tilde{y}, \tilde{z},
-      | \bar{a}, \bar{b}, \bar{c}, \bar{d}, \bar{e}, \bar{f},
-        \bar{g}, \bar{h}, \bar{i}, \bar{j}, \bar{k}, \bar{l}, \bar{m},
-        \bar{n}, \bar{o}, \bar{p}, \bar{q}, \bar{r}, \bar{s},
-        \bar{t}, \bar{u}, \bar{v}, \bar{w}, \bar{x}, \bar{y}, \bar{z},
-      | \adot{a}, \adot{b}, \adot{c}, \adot{d}, \adot{e}, \adot{f},
-        \adot{g}, \adot{h}, \adot{i}, \adot{j}, \adot{k}, \adot{l}, \adot{m},
-        \adot{n}, \adot{o}, \adot{p}, \adot{q}, \adot{r}, \adot{s},
-        \adot{t}, \adot{u}, \adot{v}, \adot{w}, \adot{x}, \adot{y}, \adot{z},
-      | \ddot{a}, \ddot{b}, \ddot{c}, \ddot{d}, \ddot{e}, \ddot{f},
-        \ddot{g}, \ddot{h}, \ddot{i}, \ddot{j}, \ddot{k}, \ddot{l}, \ddot{m},
-        \ddot{n}, \ddot{o}, \ddot{p}, \ddot{q}, \ddot{r}, \ddot{s},
-        \ddot{t}, \ddot{u}, \ddot{v}, \ddot{w}, \ddot{x}, \ddot{y}, \ddot{z}.
+      | \p{x + y}^2 = x^2 + 2xy + y^2,               \label!(`formula1`)
+      | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab, \label!(`formula2`)
+      | \p{x + y}\p{x - y} = x^2 - y^2.              \label!(`formula3`)
       |});
+    >%
 
     +p{
-      ${\hat{f}} や ${\hat{J}} など，中にはアクセントを付けるときに ${x} 方向の位置がズレているように見えるものがあります．
-      これは，引数の文字に関わらず ${x} 方向の位置を一律に定めて文字を付けているためであり，
-      アクセントの適切な位置をフォントから取得する機構が \SATySFi; にまだ備わっていないことに起因します．
-      場当たり的な解決策として，オプション引数に補正係数を指定して
-      `\hat?:!(0.18){f}` などとすれば補正することができます．
+      付与した数式は ``\ref(`eq:formula1`);`` とすることで参照することができます。
+      たとえば先程の例の一番上の式は (\ref(`eq:formula1`);) 式でした。
     }
+
+    +p{
+      さらに、表示するタグを変更することもできます。
+    }
+
+    +example(```
     +eqn-gather(${
-      | \hat{f}, \hat?:!(0.18){f},
-      | \hat{J}, \hat?:!(0.20){J},
-      | \hat{m}, \hat?:!(0.-.0.15){m}.
+      | \p{x + y}^2 = x^2 + 2xy + y^2,  \label?:!(`1-a`)!(`formula4`)
+      | \p{x + y}\p{x - y} = x^2 - y^2.
+        \label?:!(`very long tag`)!(`formula5`)
       |});
+    ```) <%
+    +eqn-gather(${
+      | \p{x + y}^2 = x^2 + 2xy + y^2,  \label?:!(`1-a`)!(`formula4`)
+      | \p{x + y}\p{x - y} = x^2 - y^2.
+        \label?:!(`very long tag`)!(`formula5`)
+      |});
+    >%
 
     +p{
-      現時点での実用的な運用方法は，文書で使いそうなアクセント変数を
-      プリアンブル部分で以下のように定義してしまうことでしょう．
+      式変形の途中など、数式番号やタグを表示したくない場合もあるでしょう。
+      タグを非表示にする方法は2通りあります。
+      1つ目は `\notag` コマンドを用いる方法です。
+      `\label` の代わりに `\notag` を用いると、タグが付かなくなります。
+      式変形や長い数式の途中など、特定の行のみ無効化したい場合に有効です。
     }
-    +code(```
-      let-math \hat-f = ${\hat?:!(0.18){f}}
-      let-math \hat-J = ${\hat?:!(0.20){J}}
-    ```);
 
+    +example(```
+    +eqn-gather(${
+      | \p{x + y}^2 = x^2 + 2xy + y^2, \notag
+      | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab,
+      | \p{x + y}\p{x - y} = x^2 - y^2.
+      |});
+    ```) <%
+    +eqn-gather(${
+      | \p{x + y}^2 = x^2 + 2xy + y^2, \notag
+      | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab,
+      | \p{x + y}\p{x - y} = x^2 - y^2.
+      |});
+    >%
+
+    +p{
+      2つ目は、数式環境の引数に `AZMathEquation.notag` を与える方法です。
+      `AZMathEquation.notag` を指定した数式環境ではデフォルトでタグが付かなくなり、
+      `\label` コマンドを用いた箇所にのみタグが付くようになります。
+      特定の箇所に限りタグを付与したい場合には有効な手段と言えます。
+    }
+
+    +example(```
+    +eqn-gather?:(AZMathEquation.notag)(${
+      | \p{x + y}^2 = x^2 + 2xy + y^2,
+      | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab,
+      | \p{x + y}\p{x - y} = x^2 - y^2. \label!(`formula-notag`)
+      |});
+    ```) <%
+    +eqn-gather?:(AZMathEquation.notag)(${
+      | \p{x + y}^2 = x^2 + 2xy + y^2,
+      | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab,
+      | \p{x + y}\p{x - y} = x^2 - y^2. \label!(`formula-notag`)
+      |});
+    >%
+
+    +p{
+      数式環境のオプション引数に指定する `notag` などの関数は、
+      本来数式のタグの体裁を指定するのに利用されます。
+      したがって、関数定義によって数式のラベルを別の体裁にすることもできます。
+    }
+
+    +p{
+      数式が長いことによって通常の位置にタグを打つと数式とタグが重なってしまう場合、
+      タグの位置を自動で下にずらしてくれるのは
+      AZmath パッケージの数式環境の強みです。
+    }
+
+    +example(```
+    +eqn-gather(${
+      | \p{a + b + c + d + e}\p{x + y}
+        = ax + ay + bx + by + cx + cy + dx + dy + ex + ey
+      | x^3 + y^3 + z^3 - 3xyz =
+        \p{x + y + z}\p{x^2 + y^2 + z^2 - xy - yz - zx}
+        \label?:!(`long tag`)!(`long-tag-formula`)
+      |});
+    ```) <%
+    +eqn-gather(${
+      | \p{a + b + c + d + e}\p{x + y}
+        = ax + ay + bx + by + cx + cy + dx + dy + ex + ey
+      | x^3 + y^3 + z^3 - 3xyz =
+        \p{x + y + z}\p{x^2 + y^2 + z^2 - xy - yz - zx}
+        \label?:!(`long tag`)!(`long-tag-formula`)
+      |});
+    >%
 
   >%
 
-  +subsection{括弧}<%
+  +subsection{数式環境途中での改ページ}<%
     +p{
-      標準の `math` パッケージにも括弧は定義されていますが，
-      `azmath` パッケージでも新たな括弧を定義しています．
-      標準のアプローチと同様に括弧はグラフィックスで定義しており，
-      フォントに入っている括弧は用いていません．
+      デフォルトでは、数式環境の途中で改ページを許す仕様となっていますが、
+      `\keeppage` コマンドを付けることでこれを抑制することもできます。
     }
+    +p{
+      数式の途中だからタグ付けも改ページもしたくない、という場合には
+      `\notag\keeppage` としてもよいですが、
+      同じ効果を持つ `\tbc`（To Be Continued の略）というより短いコマンドも用意しています。
+    }
+  >%
 
-    +eqn-gather(${
-      | \lim_{x \to 0}\paren{\frac{1}{2} \paren{\paren{\paren{x + 1} + x}^2}}^2
-      | \lim_{x \to 0}\p{\frac{1}{2} \p{\p{\p{x + 1} + x}^2}}^2
-      |});
-
-    +eqn-gather(${
-      | \p{\int_0^\infty \frac{\sin x}{\sqrt{x}} \ordd x}^2
-        = \sum_{k=0}^\infty \frac{\p{2k}\!}{2^{2k}\p{k\!}^2} \frac{1}{2k + 1}
-        = \prod_{k=1}^\infty \frac{4k^2}{4k^2 - 1} = \frac{\pi}{2}
-      |});
+  +subsection{数式環境のパラメータ}<%
 
     +p{
-      `azmath` で定義された括弧にはいくつかの特徴があります．
+      AZmath パッケージで用意されている数式環境では、
+      パラメータを指定してその振る舞いを変更することができます。
     }
 
     +listing{
-      * 括弧の高さは必要に応じて伸縮する．
-      * 複数の括弧を入れても，括弧の高さは変わらない．
-        ただし例外として，絶対値に用いられる `\pabs` のように開き括弧と閉じ括弧の区別が見かけ上つかない括弧については，
-        括弧のネストをわかりやすくするため中身より一段階高くする．
+      * `allow-display-break`: 別行立て数式の途中で改行することを許すか。
+      * `vmargin-between-eqn`: 数式同士の間の余白。
+      * `vmargin-between-eqn-and-tag`:
+        数式やタグが長いためにタグが数式の下に回り込んだ際に、
+        数式とタグの間に入る縦方向の余白。
     }
 
     +p{
-      2番目については，以下のような例を見るとよりはっきりと違いが分かるでしょう．
+      以下のように変更できます。
     }
-
-    +eqn-gather(${
-      | \paren{\paren{\paren{\paren{\paren{\paren{\paren{x}}}}}}}
-      | \p{\p{\p{\p{\p{\p{\p{x}}}}}}}
-      |});
-
-    +eqn-gather(${
-      | \sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{x}}}}}}}
-      | \pB{\pB{\pB{\pB{\pB{\pB{\pB{x}}}}}}}
-      |});
-
-    +p{
-      括弧の種類はいくつか用意されています．
-    }
-
-    +eqn-gather(${
-      | \lim_{x \to 0}\pb{\frac{1}{2} \pb{\pb{\pb{x + 1} + x}^2}}
-      | \lim_{x \to 0}\pB{\frac{1}{2} \pB{\pB{\pB{x + 1} + x}^2}}
-      | \lim_{x \to 0}\pabs{\frac{1}{2} \pabs{\pabs{\pabs{x + 1} + x}^2}}
-      | \lim_{x \to 0}\pnorm{\frac{1}{2} \pnorm{\pnorm{\pnorm{x + 1} + x}^2}}
-      | \lim_{x \to 0}\pangle{\frac{1}{2} \pangle{\pangle{\pangle{x + 1} + x}^2}}^2
-      |});
-
-    +p{
-      時には括弧の大きさを自動ではなく手動で調整したい場合もあるかもしれません．
-      括弧の大きさはオプション引数によって調整できます． `\p?:!(20pt){xxx}` で，
-      あたかも中身が20ptの高さを持っているかのように括弧を組むことができます．
-    }
-
-    +eqn-gather(${
-      | \p?:!(10pt){xxx} = \p?:!(15pt){xxx} = \p?:!(30pt){xxx}
-      | \p{xxx} = \p-big{xxx} = \p-Big{xxx} = \p-bigg{xxx} = \p-Bigg{xxx}
-      | \lim_{x \to 0}\pangle?:!(12pt){\frac{1}{2} \pangle?:!(8pt){\pangle?:!(16pt){\pangle?:!(12pt){x + 1} + x}^2}}
-      |});
-
-    +p{
-      `\overbrace{m}`, `\underbrace{m}` で数式の上下に波括弧を描く事ができます．
-      数式の一部に注釈を入れたいときなどに使えます．
-    }
-
-    +eqn-gather(
-      let m = ${\frac{\neg b \pm \sqrt{b^2 - 4ac}}{2a}} in
-      ${
-        | x = \overbrace{#m} + \overbrace{\pb{#m} + #m}^{\text!{ここ大事！}}
-        | x = \underbrace{#m + \pb{#m}} + \underbrace{#m}_{\text!{ここ大事！}}
-        |});
-
-    +p{
-      片方が片方に内包される形であれば，入れ子にして使うことも可能です．
-    }
-
-    +eqn-gather(${
-      | x = \underbrace{
-          \overbrace{ a + \underbrace{b + c}_{=0} }^{\text!{foo}}
-          + d + \overbrace{e + f}
-        }_{=0}
-      |});
 
   >%
 
-  +subsection{行列}<%
+  +p{
+    `+eqn-align` コマンドでも複数の数式を表示できますが，
+    `+eqn-gather` とは異なり，ユーザが定めた位置で式を揃えることができます．
+    同値変形などに便利です．
+    こちらも全ての行に式番号がつくようになっています．
+  }
 
-    +p{
-      行列を描くことも出来ます．
-    }
+  +eqn-align-test(${
+    | 2x + 3 |= x + 1 \tbc
+    | 2x - x |= 1 - 3 \tbc
+    | x      |= -2
+    |});
 
-    +eqn-gather(${
-      | A = \pmatrix!(2){| a | b | c | d |}
-      | A^{-1} = \frac{1}{ad - bc} \pmatrix!(2){| d | \neg b | \neg c | a |}
-        = \pmatrix!(2){
-        | \frac{d}{ad - bc}  | \neg \frac{b}{ad - bc}
-        | \neg \frac{c}{ad - bc} | \frac{a}{ad - bc}
-        |}
-      |});
+  +p{
+    その他， `+eqn-alignat` や `\eqn-aligned` (math command) といったコマンドもあります．
+    `\eqn-cases` を用いて場合分けを行うこともできます．
+  }
 
-    +p{
-      行列の括弧は色々変えられます．
-    }
-
-    +eqn-align(${
-      | A |= \matrix!(2){| a | b | c | d |}
-      | A |= \bmatrix!(2){| a | b | c | d |}
-      | A |= \vmatrix!(2){| a | b | c | d |}
-      | A |= \dmatrix!(2){| a | b | c | d |}
-      |});
-
-  >%
+  +math(${
+    y = \eqn-cases{
+    | x      | \p{x \geq 0}
+    | \neg x | \p{x < 0}
+    |}
+    });
 
 >%
+
++section{アクセント}<%
+
+  +p{
+    数式にアクセントを追加することができます．
+  }
+
+  +eqn-gather(${
+    | \hat{a}, \hat{b}, \hat{c}, \hat{d}, \hat{e}, \hat{f},
+      \hat{g}, \hat{h}, \hat{i}, \hat{j}, \hat{k}, \hat{l}, \hat{m},
+      \hat{n}, \hat{o}, \hat{p}, \hat{q}, \hat{r}, \hat{s},
+      \hat{t}, \hat{u}, \hat{v}, \hat{w}, \hat{x}, \hat{y}, \hat{z},
+    | \hat{A}, \hat{B}, \hat{C}, \hat{D}, \hat{E}, \hat{F},
+      \hat{G}, \hat{H}, \hat{I}, \hat{J}, \hat{K}, \hat{L}, \hat{M},
+      \hat{N}, \hat{O}, \hat{P}, \hat{Q}, \hat{R}, \hat{S},
+      \hat{T}, \hat{U}, \hat{V}, \hat{W}, \hat{X}, \hat{Y}, \hat{Z},
+    | \hat{\alpha}, \hat{\beta}, \hat{\gamma}, \hat{\delta}, \hat{\epsilon}, \hat{\zeta},
+      \hat{\eta}, \hat{\theta}, \hat{\iota}, \hat{\kappa}, \hat{\lambda}, \hat{\mu},
+      \hat{\nu}, \hat{\xi}, \hat{\omicron}, \hat{\pi}, \hat{\rho}, \hat{\sigma},
+      \hat{\tau}, \hat{\upsilon}, \hat{\phi}, \hat{\chi}, \hat{\psi}, \hat{\omega},
+    | \hat{\Alpha}, \hat{\Beta}, \hat{\Gamma}, \hat{\Delta}, \hat{\Epsilon}, \hat{\Zeta},
+      \hat{\Eta}, \hat{\Theta}, \hat{\Iota}, \hat{\Kappa}, \hat{\Lambda}, \hat{\Mu},
+      \hat{\Nu}, \hat{\Xi}, \hat{\Omicron}, \hat{\Pi}, \hat{\Rho}, \hat{\Sigma},
+      \hat{\Tau}, \hat{\Upsilon}, \hat{\Phi}, \hat{\Chi}, \hat{\Psi}, \hat{\Omega}.
+    |});
+
+  +p{
+    他のアクセントについても同様に付けることができます．
+  }
+
+  +eqn-gather(${
+    | \tilde{a}, \tilde{b}, \tilde{c}, \tilde{d}, \tilde{e}, \tilde{f},
+      \tilde{g}, \tilde{h}, \tilde{i}, \tilde{j}, \tilde{k}, \tilde{l}, \tilde{m},
+      \tilde{n}, \tilde{o}, \tilde{p}, \tilde{q}, \tilde{r}, \tilde{s},
+      \tilde{t}, \tilde{u}, \tilde{v}, \tilde{w}, \tilde{x}, \tilde{y}, \tilde{z},
+    | \bar{a}, \bar{b}, \bar{c}, \bar{d}, \bar{e}, \bar{f},
+      \bar{g}, \bar{h}, \bar{i}, \bar{j}, \bar{k}, \bar{l}, \bar{m},
+      \bar{n}, \bar{o}, \bar{p}, \bar{q}, \bar{r}, \bar{s},
+      \bar{t}, \bar{u}, \bar{v}, \bar{w}, \bar{x}, \bar{y}, \bar{z},
+    | \adot{a}, \adot{b}, \adot{c}, \adot{d}, \adot{e}, \adot{f},
+      \adot{g}, \adot{h}, \adot{i}, \adot{j}, \adot{k}, \adot{l}, \adot{m},
+      \adot{n}, \adot{o}, \adot{p}, \adot{q}, \adot{r}, \adot{s},
+      \adot{t}, \adot{u}, \adot{v}, \adot{w}, \adot{x}, \adot{y}, \adot{z},
+    | \ddot{a}, \ddot{b}, \ddot{c}, \ddot{d}, \ddot{e}, \ddot{f},
+      \ddot{g}, \ddot{h}, \ddot{i}, \ddot{j}, \ddot{k}, \ddot{l}, \ddot{m},
+      \ddot{n}, \ddot{o}, \ddot{p}, \ddot{q}, \ddot{r}, \ddot{s},
+      \ddot{t}, \ddot{u}, \ddot{v}, \ddot{w}, \ddot{x}, \ddot{y}, \ddot{z}.
+    |});
+
+  +p{
+    ${\hat{f}} や ${\hat{J}} など，中にはアクセントを付けるときに ${x} 方向の位置がズレているように見えるものがあります．
+    これは，引数の文字に関わらず ${x} 方向の位置を一律に定めて文字を付けているためであり，
+    アクセントの適切な位置をフォントから取得する機構が \SATySFi; にまだ備わっていないことに起因します．
+    場当たり的な解決策として，オプション引数に補正係数を指定して
+    `\hat?:!(0.18){f}` などとすれば補正することができます．
+  }
+  +eqn-gather(${
+    | \hat{f}, \hat?:!(0.18){f},
+    | \hat{J}, \hat?:!(0.20){J},
+    | \hat{m}, \hat?:!(0.-.0.15){m}.
+    |});
+
+  +p{
+    現時点での実用的な運用方法は，文書で使いそうなアクセント変数を
+    プリアンブル部分で以下のように定義してしまうことでしょう．
+  }
+  +code(```
+    let-math \hat-f = ${\hat?:!(0.18){f}}
+    let-math \hat-J = ${\hat?:!(0.20){J}}
+  ```);
+
+
+>%
+
++section{括弧}<%
+  +p{
+    標準の `math` パッケージにも括弧は定義されていますが，
+    `azmath` パッケージでも新たな括弧を定義しています．
+    標準のアプローチと同様に括弧はグラフィックスで定義しており，
+    フォントに入っている括弧は用いていません．
+  }
+
+  +eqn-gather(${
+    | \lim_{x \to 0}\paren{\frac{1}{2} \paren{\paren{\paren{x + 1} + x}^2}}^2
+    | \lim_{x \to 0}\p{\frac{1}{2} \p{\p{\p{x + 1} + x}^2}}^2
+    |});
+
+  +eqn-gather(${
+    | \p{\int_0^\infty \frac{\sin x}{\sqrt{x}} \ordd x}^2
+      = \sum_{k=0}^\infty \frac{\p{2k}\!}{2^{2k}\p{k\!}^2} \frac{1}{2k + 1}
+      = \prod_{k=1}^\infty \frac{4k^2}{4k^2 - 1} = \frac{\pi}{2}
+    |});
+
+  +p{
+    `azmath` で定義された括弧にはいくつかの特徴があります．
+  }
+
+  +listing{
+    * 括弧の高さは必要に応じて伸縮する．
+    * 複数の括弧を入れても，括弧の高さは変わらない．
+      ただし例外として，絶対値に用いられる `\pabs` のように開き括弧と閉じ括弧の区別が見かけ上つかない括弧については，
+      括弧のネストをわかりやすくするため中身より一段階高くする．
+  }
+
+  +p{
+    2番目については，以下のような例を見るとよりはっきりと違いが分かるでしょう．
+  }
+
+  +eqn-gather(${
+    | \paren{\paren{\paren{\paren{\paren{\paren{\paren{x}}}}}}}
+    | \p{\p{\p{\p{\p{\p{\p{x}}}}}}}
+    |});
+
+  +eqn-gather(${
+    | \sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{x}}}}}}}
+    | \pB{\pB{\pB{\pB{\pB{\pB{\pB{x}}}}}}}
+    |});
+
+  +p{
+    括弧の種類はいくつか用意されています．
+  }
+
+  +eqn-gather(${
+    | \lim_{x \to 0}\pb{\frac{1}{2} \pb{\pb{\pb{x + 1} + x}^2}}
+    | \lim_{x \to 0}\pB{\frac{1}{2} \pB{\pB{\pB{x + 1} + x}^2}}
+    | \lim_{x \to 0}\pabs{\frac{1}{2} \pabs{\pabs{\pabs{x + 1} + x}^2}}
+    | \lim_{x \to 0}\pnorm{\frac{1}{2} \pnorm{\pnorm{\pnorm{x + 1} + x}^2}}
+    | \lim_{x \to 0}\pangle{\frac{1}{2} \pangle{\pangle{\pangle{x + 1} + x}^2}}^2
+    |});
+
+  +p{
+    時には括弧の大きさを自動ではなく手動で調整したい場合もあるかもしれません．
+    括弧の大きさはオプション引数によって調整できます． `\p?:!(20pt){xxx}` で，
+    あたかも中身が20ptの高さを持っているかのように括弧を組むことができます．
+  }
+
+  +eqn-gather(${
+    | \p?:!(10pt){xxx} = \p?:!(15pt){xxx} = \p?:!(30pt){xxx}
+    | \p{xxx} = \p-big{xxx} = \p-Big{xxx} = \p-bigg{xxx} = \p-Bigg{xxx}
+    | \lim_{x \to 0}\pangle?:!(12pt){\frac{1}{2} \pangle?:!(8pt){\pangle?:!(16pt){\pangle?:!(12pt){x + 1} + x}^2}}
+    |});
+
+  +p{
+    `\overbrace{m}`, `\underbrace{m}` で数式の上下に波括弧を描く事ができます．
+    数式の一部に注釈を入れたいときなどに使えます．
+  }
+
+  +eqn-gather(
+    let m = ${\frac{\neg b \pm \sqrt{b^2 - 4ac}}{2a}} in
+    ${
+      | x = \overbrace{#m} + \overbrace{\pb{#m} + #m}^{\text!{ここ大事！}}
+      | x = \underbrace{#m + \pb{#m}} + \underbrace{#m}_{\text!{ここ大事！}}
+      |});
+
+  +p{
+    片方が片方に内包される形であれば，入れ子にして使うことも可能です．
+  }
+
+  +eqn-gather(${
+    | x = \underbrace{
+        \overbrace{ a + \underbrace{b + c}_{=0} }^{\text!{foo}}
+        + d + \overbrace{e + f}
+      }_{=0}
+    |});
+
+>%
+
++section{行列}<%
+
+  +p{
+    行列を描くことも出来ます．
+  }
+
+  +eqn-gather(${
+    | A = \pmatrix!(2){| a | b | c | d |}
+    | A^{-1} = \frac{1}{ad - bc} \pmatrix!(2){| d | \neg b | \neg c | a |}
+      = \pmatrix!(2){
+      | \frac{d}{ad - bc}  | \neg \frac{b}{ad - bc}
+      | \neg \frac{c}{ad - bc} | \frac{a}{ad - bc}
+      |}
+    |});
+
+  +p{
+    行列の括弧は色々変えられます．
+  }
+
+  +eqn-align(${
+    | A |= \matrix!(2){| a | b | c | d |}
+    | A |= \bmatrix!(2){| a | b | c | d |}
+    | A |= \vmatrix!(2){| a | b | c | d |}
+    | A |= \dmatrix!(2){| a | b | c | d |}
+    |});
+
+>%
+
 
 
 >%

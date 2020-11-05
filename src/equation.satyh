@@ -2,7 +2,8 @@
 %
 % align や gather に相当するコマンド群．
 
-@require: list
+@require: base/list-ext
+@require: base/tuple
 @import: util
 @import: common/matrix
 @import: common/counter
@@ -14,6 +15,7 @@ type labelmeta = (|
   tag: string option;
   label: string option;
   no-label-flag: bool;
+  keep-page-flag: bool;
 |)
 type labelfmt = context -> labelmeta -> inline-boxes option
 
@@ -21,6 +23,10 @@ module AZMathEquation : sig
 
 % パラメータ・カウンタ
   val allow-display-break: bool AZMathParam.t
+  val vmargin-between-eqn: (context -> length) AZMathParam.t
+  val vmargin-between-eqn-and-tag: (context -> length) AZMathParam.t
+  val min-gap-between-eqn-and-tag: (context -> length) AZMathParam.t
+
   val ctr : Counter.t
 
 % ラベル指定
@@ -28,12 +34,17 @@ module AZMathEquation : sig
   direct \label : [string?; string] math-cmd
   % このコマンドが付いた行だけ tag を強制的に付けない。
   direct \notag : [] math-cmd
-  % \label コマンドがつかない限り、基本的にラベルを付けないフォーマット。
-  val nolabel : labelfmt
+  % このコマンドが付いた数式行の直後での改ページを抑制する。
+  direct \keeppage : [] math-cmd
+  % \notag\keeppage と同効果。 To Be Continued...
+  direct \tbc : [] math-cmd
 
-  direct +eqn-gather : [math list;] block-cmd
-  direct +eqn-gather-test : [labelfmt?;math list;] block-cmd
+  % \label コマンドがつかない限り、基本的にラベルを付けないフォーマット。
+  val notag : labelfmt
+
+  direct +eqn-gather : [labelfmt?;math list;] block-cmd
   direct +eqn-align : [math list;] block-cmd
+  direct +eqn-align-test : [labelfmt?; math list;] block-cmd
   direct +eqn-alignat : [int; math list;] block-cmd
   direct \eqn-gather : [math list;] inline-cmd
   direct \eqn-align : [math list;] inline-cmd
@@ -56,6 +67,9 @@ end = struct
   % param/counter {{{
 
   let allow-display-break = AZMathParam.make true
+  let vmargin-between-eqn = AZMathParam.make (fun ctx -> (get-font-size ctx) *' 0.6)
+  let vmargin-between-eqn-and-tag = AZMathParam.make (fun ctx -> (get-font-size ctx) *' 0.3)
+  let min-gap-between-eqn-and-tag = AZMathParam.make (fun ctx -> 2pt)
 
   let ctr = Counter.make 0 []
 
@@ -128,6 +142,7 @@ end = struct
     tag = None;
     label = None;
     no-label-flag = false;
+    keep-page-flag = false;
   |)
 
   let-math \notag =
@@ -156,6 +171,21 @@ end = struct
       ${}
     in
     text-in-math MathOrd (fun ctx -> embed-math ctx (mathf ctx))
+
+  let-math \keeppage =
+    let mathf ctx =
+      let eqn-meta = param-label-meta |> AZMathParam.get in
+      let () =
+        param-label-meta |> AZMathParam.set (|
+          eqn-meta with
+            keep-page-flag = true;
+        |)
+      in
+      ${}
+    in
+    text-in-math MathOrd (fun ctx -> embed-math ctx (mathf ctx))
+
+  let-math \tbc = ${\notag\keeppage}
 
   % embed-math を行いつつ、内部で設定された meta 情報を返す。
   let embed-math-and-get-meta ctx m =
@@ -190,23 +220,30 @@ end = struct
     in
     Some(ib-ref ++ ib-tag)
 
-  let nolabel ctx label-meta =
+  let notag ctx label-meta =
     match label-meta#label with
     | None -> None
     | Some(_) -> default-labelfmt ctx label-meta
 
-  let align-math ctx ib-m =
+  let align-math ctx meta ib-m =
     let (wid-ib, _, _) = get-natural-metrics ib-m in
     let wid-line = get-text-width ctx in
     let wid-before-eqn = (wid-line -' wid-ib) *' 0.5 in
+
+    % 数式間の縦の余白を規定する
+    let mgn = (AZMathParam.get vmargin-between-eqn) ctx in
+    let ctx = ctx |> set-paragraph-margin mgn mgn in
+
       [
-        line-break (AZMathParam.get allow-display-break) true ctx (
+        % 上側は allow-display-break パラメータで改行を許すか指定。
+        % 下側は \keeppage が付いているかどうかで改行を許すか既定。
+        line-break (AZMathParam.get allow-display-break) (not meta#keep-page-flag) ctx (
           (inline-skip wid-before-eqn) ++ ib-m ++ (inline-skip wid-before-eqn)
         )
       ]
 
   % 数式とタグの inline-boxes を受け取り、 block-boxes のリストを返す。
-  let align-math-tag ctx ib-m ib-tag =
+  let align-math-tag ctx meta ib-m ib-tag =
     let (wid-ib, _, _) = get-natural-metrics ib-m in
     let (wid-tag, _, _) = get-natural-metrics ib-tag in
     let wid-line = get-text-width ctx in
@@ -214,7 +251,12 @@ end = struct
     let wid-before-eqn = (wid-line -' wid-ib) *' 0.5 in
     let wid-space-bwn-eqn-tag = wid-before-eqn -' wid-tag in
 
-    if wid-space-bwn-eqn-tag >' 0pt then
+    % 数式間の縦の余白を規定する
+    let mgn = (AZMathParam.get vmargin-between-eqn) ctx in
+    let min-gap = (AZMathParam.get min-gap-between-eqn-and-tag) ctx in
+    let ctx = ctx |> set-paragraph-margin mgn mgn in
+
+    if wid-space-bwn-eqn-tag >' min-gap then
       % 数式とタグがぶつからない場合
       [
         line-break (AZMathParam.get allow-display-break) true ctx (
@@ -224,80 +266,158 @@ end = struct
       ]
     else
       % ぶつかる場合
+      let mgn-mid = (AZMathParam.get vmargin-between-eqn-and-tag) ctx in
       [
-        line-break (AZMathParam.get allow-display-break) false ctx (
+        % 上側は allow-display-break パラメータで改行を許すか指定。
+        % 下側はタグとの境目なので必ず false。
+        line-break (AZMathParam.get allow-display-break) false
+          (ctx |> set-paragraph-margin mgn mgn-mid) (
           (inline-skip wid-before-eqn) ++ ib-m ++ (inline-skip wid-before-eqn)
         );
-        line-break false true ctx (
+        % 上側は数式との境目なので必ず false。
+        % 下側は \keeppage が付いているかどうかで改行を許すか既定。
+        line-break false (not meta#keep-page-flag) (ctx |> set-paragraph-margin mgn-mid mgn) (
           (inline-skip (wid-line -' wid-tag)) ++ ib-tag
         );
       ]
 
-
-  % gather 環境。
-  let-block ctx +eqn-gather-test ?:labelfmt mlst =
+  % gather 環境
+  let-block ctx +eqn-gather ?:labelfmt mlst =
     let labelfmt = labelfmt |> Option.from default-labelfmt in
 
     % (inline-boxes * labelmeta) list
     let ib-meta-lst = mlst |> List.map (embed-math-and-get-meta ctx) in
-
-    % 数式間の縦の余白を規定する
-    let ctx =
-      let fsize = get-font-size ctx in
-      ctx |> set-paragraph-margin (fsize *' 0.6) (fsize *' 0.6)
-    in
 
     % 数式の inline-boxes とtag情報を受け取り、block-boxes を返す。
     let align-eqn-f ib-meta =
       let (ib-m, eqn-meta) = ib-meta in
       % タグの inline-boxes を取得
       if eqn-meta#no-label-flag then
-        align-math ctx ib-m
+        align-math ctx eqn-meta ib-m
       else
         match (labelfmt ctx eqn-meta) with
-        | None -> align-math ctx ib-m
-        | Some(ib-tag) -> align-math-tag ctx ib-m ib-tag
+        | None -> align-math ctx eqn-meta ib-m
+        | Some(ib-tag) -> align-math-tag ctx eqn-meta ib-m ib-tag
     in
 
     let bb-lst = ib-meta-lst |> List.map align-eqn-f |> List.concat in
     bb-lst |> List.fold-left (+++) block-nil
 
-
-  let-block ctx +eqn-gather mlst =
-    let vlen = 4pt in
-
-    let math-matrix = AZTypeMatrix.from-list 1 ${} mlst in
-    let ib-matrix =
-      let math-to-centered-ib ctx m = inline-fil ++ (embed-math ctx m) ++ inline-fil in
-      AZTypeMatrix.map (math-to-centered-ib ctx) math-matrix in
-
-    let cell-matrix =
-      AZTypeMatrix.map (fun ib -> NormalCell((0pt, 0pt, vlen, vlen), ib)) ib-matrix
-    in
-
-    % Label 表示用のテーブル（右端に置いて複数行に渡るラベルを実現する）
-    let it-lst-label = create-label-list (List.length mlst) in
-    let ib-lst-label = List.map (read-inline ctx) it-lst-label in
-    let max-height-vphantom-f = List.map create-max-height-vphantom (AZTypeMatrix.to-llist ib-matrix) in
-    let dummy-ib = read-inline ctx {} in
-    let ib-phantom-label-matrix = AZTypeMatrix.from-list 1 dummy-ib (map-each max-height-vphantom-f ib-lst-label) in
-    let cell-label-matrix =
-      AZTypeMatrix.map (fun ib -> NormalCell((0pt, 0pt, vlen, vlen), ib)) ib-phantom-label-matrix
-    in
-
-    % let rulef = (labelf [read-inline ctx {hose}; read-inline ctx {fuga}] 300pt) in
-    let rulef _ _ = [] in
-    let ib-tabular = tabular (AZTypeMatrix.to-llist cell-matrix) rulef in
-    let ib-label-tabular = tabular (AZTypeMatrix.to-llist cell-label-matrix) rulef in
-
-    let margin = get-font-size ctx *' 1.0 in
-    let ctx-eqn = ctx |> set-paragraph-margin margin margin in
-    line-break true true ctx-eqn (inline-fil ++ ib-tabular ++ inline-fil ++ ib-label-tabular)
-
   let-inline ctx \eqn-gather mlst =
   inline-fil ++
     embed-block-breakable ctx (read-block ctx '<+eqn-gather(mlst);>)
       ++ omit-skip-after
+
+
+  let separate-left-and-right mlst =
+    let-rec aux (left, right, mlst) =
+      match mlst with
+      | x1 :: (x2 :: rest) ->
+          aux (x1 :: left, x2 :: right, rest)
+      | _ -> (left, right, [])
+    in
+    let (left, right, _) = aux ([], [], mlst) in
+    (left, right)
+
+  let max-wid-from-ib-meta-lst ib-meta-lst =
+    ib-meta-lst |> List.map (fun (ib, _) -> (
+      let (wid, _, _) = get-natural-metrics ib in
+      wid
+    )) |> List.fold-left length-max 0pt
+
+  let-block ctx +eqn-align-test ?:labelfmt mlst =
+
+    let labelfmt = labelfmt |> Option.from default-labelfmt in
+
+    let embed-math-and-get-meta [m-left; m-right] =
+      let space = space-between-maths ctx m-left m-right in
+      let ib-left = match space with
+        | Some(ib-space) -> (embed-math ctx m-left) ++ ib-space
+        | None -> embed-math ctx m-left
+      in
+      let ib-right = embed-math ctx m-right in
+      let eqn-meta = param-label-meta |> AZMathParam.get in
+      let () = param-label-meta |> AZMathParam.discard in  % 初期値に戻す
+      (ib-left, ib-right, eqn-meta)
+    in
+    let math-llst = AZTypeMatrix.from-list 2 ${} mlst |> AZTypeMatrix.to-llist in
+    let ib-meta-lst = math-llst |> List.map embed-math-and-get-meta in
+
+    let left-max-wid = ib-meta-lst
+      |> List.map (fun (left, _, _) -> get-natural-width left)
+      |> List.fold-left length-max 0pt
+    in
+    let right-max-wid = ib-meta-lst
+      |> List.map (fun (_, right, _) -> get-natural-width right)
+      |> List.fold-left length-max 0pt
+    in
+    let wid-min-before-eqn = ((get-text-width ctx) -' (left-max-wid +' right-max-wid)) *' 0.5 in
+
+    let align-eqn-f (ib-left, ib-right, meta) =
+
+      let wid-ib-left = get-natural-width ib-left in
+      let wid-ib-right = get-natural-width ib-right in
+      let wid-before-eqn = wid-min-before-eqn +' (left-max-wid -' wid-ib-left) in
+      let wid-after-eqn = wid-min-before-eqn +' (right-max-wid -' wid-ib-right) in
+
+      % 数式間の縦の余白を規定する
+      let mgn = (AZMathParam.get vmargin-between-eqn) ctx in
+      let ctx = ctx |> set-paragraph-margin mgn mgn in
+
+      let align-math =
+        [
+          % 上側は allow-display-break パラメータで改行を許すか指定。
+          % 下側は \keeppage が付いているかどうかで改行を許すか既定。
+          line-break (AZMathParam.get allow-display-break) (not meta#keep-page-flag) ctx (
+            (inline-skip wid-before-eqn) ++ ib-left ++ ib-right ++ (inline-skip wid-after-eqn)
+          )
+        ]
+      in
+
+      let align-math-tag ib-tag =
+        let wid-line = get-text-width ctx in
+        let wid-tag = get-natural-width ib-tag in
+        let wid-space-bwn-eqn-tag = wid-after-eqn -' wid-tag in
+        let min-gap = (AZMathParam.get min-gap-between-eqn-and-tag) ctx in
+        if wid-space-bwn-eqn-tag >' min-gap then
+          % 数式とタグがぶつからない場合
+          [
+            line-break (AZMathParam.get allow-display-break) true ctx (
+              (inline-skip wid-before-eqn) ++ ib-left ++ ib-right
+                ++ (inline-skip wid-space-bwn-eqn-tag) ++ ib-tag
+            )
+          ]
+        else
+          % ぶつかる場合
+          let mgn-mid = (AZMathParam.get vmargin-between-eqn-and-tag) ctx in
+          [
+            % 上側は allow-display-break パラメータで改行を許すか指定。
+            % 下側はタグとの境目なので必ず false。
+            line-break (AZMathParam.get allow-display-break) false
+              (ctx |> set-paragraph-margin mgn mgn-mid) (
+              (inline-skip wid-before-eqn) ++ ib-left ++ ib-right ++ (inline-skip wid-after-eqn)
+            );
+            % 上側は数式との境目なので必ず false。
+            % 下側は \keeppage が付いているかどうかで改行を許すか既定。
+            line-break false (not meta#keep-page-flag) (ctx |> set-paragraph-margin mgn-mid mgn) (
+              (inline-skip (wid-line -' wid-tag)) ++ ib-tag
+            );
+          ]
+      in
+
+      if meta#no-label-flag then
+        align-math
+      else
+        match (labelfmt ctx meta) with
+        | None -> align-math
+        | Some(ib-tag) -> align-math-tag ib-tag
+
+    in
+
+    let bb-lst = ib-meta-lst
+      |> List.map align-eqn-f |> List.concat in
+    bb-lst |> List.fold-left (+++) block-nil
+
 
 
   let-block ctx +eqn-align mlst =
