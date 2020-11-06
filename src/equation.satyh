@@ -36,6 +36,10 @@ module AZMathEquation : sig
   % これを確保できそうにない場合はタグが数式の下に潜る。
   val min-gap-between-eqn-and-tag: (context -> length) AZMathParam.t
 
+  % TODO: 数式環境前後の余白を指定可能にする
+  % val min-gap-after-eqn: (context -> length) AZMathParam.t
+  % val min-gap-before-eqn: (context -> length) AZMathParam.t
+
   % 数式番号のカウンタ。
   val ctr : Counter.t
 
@@ -258,9 +262,10 @@ end = struct
       ]
 
   let-block ctx +eqn-gather ?:labelfmt mlst =
+    % labelfmt の unwrap
     let labelfmt = labelfmt |> Option.from default-labelfmt in
 
-    % (inline-boxes * labelmeta) list
+    % math list を (inline-boxes * labelmeta) list に変換
     let ib-meta-lst = mlst |> List.map (embed-math-and-get-meta ctx) in
 
     % 数式の inline-boxes とtag情報を受け取り、block-boxes を返す。
@@ -287,9 +292,11 @@ end = struct
 % +eqn-align
 
   let-block ctx +eqn-align ?:labelfmt mlst =
-
+    % labelfmt の unwrap
     let labelfmt = labelfmt |> Option.from default-labelfmt in
 
+    % math list を2つずつ取って [[math; math]; [math; math]; ... ] の形にし、
+    % (inline-boxes * inline-boxes * labelmeta) list に変換
     let embed-math-and-get-meta [m-left; m-right] =
       let space = space-between-maths ctx m-left m-right in
       let ib-left = match space with
@@ -304,6 +311,7 @@ end = struct
     let math-llst = AZTypeMatrix.from-list 2 ${} mlst |> AZTypeMatrix.to-llist in
     let ib-meta-lst = math-llst |> List.map embed-math-and-get-meta in
 
+    % 左辺・右辺の式の最大値を計算
     let left-max-wid = ib-meta-lst
       |> List.map (fun (left, _, _) -> get-natural-width left)
       |> List.fold-left length-max 0pt
@@ -312,10 +320,11 @@ end = struct
       |> List.map (fun (_, right, _) -> get-natural-width right)
       |> List.fold-left length-max 0pt
     in
+    % 数式左側の余白幅の最小値（最も左に長い数式が来る行の左にある余白の幅）を計算
     let wid-min-before-eqn = ((get-text-width ctx) -' (left-max-wid +' right-max-wid)) *' 0.5 in
 
+    % (ib-left, ib-right, meta) を受け取り、揃えて block-boxes のリストを返す
     let align-eqn-f (ib-left, ib-right, meta) =
-
       let wid-ib-left = get-natural-width ib-left in
       let wid-ib-right = get-natural-width ib-right in
       let wid-before-eqn = wid-min-before-eqn +' (left-max-wid -' wid-ib-left) in
