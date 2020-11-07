@@ -114,7 +114,7 @@ end = struct
   let vmargin-between-eqn = AZMathParam.make (fun ctx -> (get-font-size ctx) *' 0.6)
   let vmargin-between-eqn-and-tag = AZMathParam.make (fun ctx -> (get-font-size ctx) *' 0.3)
   let min-gap-between-eqn-and-tag = AZMathParam.make (fun ctx -> 2pt)
-  let eqn-gather-align-coef = AZMathParam.make 0.0
+  let eqn-gather-align-coef = AZMathParam.make 0.5
   let vmargin-before-eqn = AZMathParam.make (fun ctx -> (get-font-size ctx) *' 1.0)
   let vmargin-after-eqn = AZMathParam.make (fun ctx -> (get-font-size ctx) *' 1.0)
 
