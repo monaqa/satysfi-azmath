@@ -34,7 +34,7 @@ module AZMathEquation : sig
   % 数式とタグの間に最低限なければならない余白の大きさ。
   % これを確保できそうにない場合はタグが数式の下に潜る。
   val min-gap-between-eqn-and-tag: (context -> length) AZMathParam.t
-  % +eqn-gather を用いるときに、式を左揃え・中央揃え・右揃えのどれにするか。
+  % +gather を用いるときに、式を左揃え・中央揃え・右揃えのどれにするか。
   % 0.0 で左揃え、 0.5 で中央揃え、 1.0 で右揃え。 それ以外の値は非推奨。
   val eqn-gather-align-coef: float AZMathParam.t
   % 数式環境前後の余白。
@@ -47,21 +47,22 @@ module AZMathEquation : sig
 % 数式環境
   % 1つの式を別行立てで表示する。
   direct +eqn : [tagfmt?; math;] block-cmd
+  direct \eqn : [tagfmt?; math;] inline-cmd
   % 複数の式を中央揃えにする。
-  direct +eqn-gather : [tagfmt?; math list;] block-cmd
-  direct \eqn-gather : [tagfmt?; math list;] inline-cmd
+  direct +gather : [tagfmt?; math list;] block-cmd
+  direct \gather : [tagfmt?; math list;] inline-cmd
   % マーカーを付けた位置で複数の式を揃える。
-  direct +eqn-align  : [tagfmt?; math list;] block-cmd
-  direct \eqn-align  : [tagfmt?; math list;] inline-cmd
+  direct +align  : [tagfmt?; math list;] block-cmd
+  direct \align  : [tagfmt?; math list;] inline-cmd
   % 横並びになった複数の式を揃える。
-  direct +eqn-alignat : [tagfmt?; int; math list;] block-cmd
-  direct \eqn-alignat : [tagfmt?; int; math list;] inline-cmd
+  direct +alignat : [tagfmt?; int; math list;] block-cmd
+  direct \alignat : [tagfmt?; int; math list;] inline-cmd
 
 % 数式の埋め込み
-  % 数式内部で \eqn-align
-  direct \eqn-aligned : [math list;] math-cmd
+  % 数式内部で \align
+  direct \aligned : [math list;] math-cmd
   % 場合分け
-  direct \eqn-cases : [math list;] math-cmd
+  direct \cases : [math list;] math-cmd
 
 % ラベル指定
   % 数式に付ける相互参照用のラベルを指定する。組版上の tag も変えられる。
@@ -365,9 +366,9 @@ end = struct
           );
         ]
 
-% +eqn-gather
+% +gather
 
-  let-block ctx +eqn-gather ?:tagfmt mlst =
+  let-block ctx +gather ?:tagfmt mlst =
     % tagfmt の unwrap
     let tagfmt = tagfmt |> Option.from default-tagfmt in
     let align-coef = AZMathParam.get eqn-gather-align-coef in
@@ -386,23 +387,30 @@ end = struct
       |> List.map-adjacent (align-eqn ctx tagfmt [align-coef] lst-max-wid) |> List.concat in
     bb-lst |> List.fold-left (+++) block-nil
 
-  let-inline ctx \eqn-gather ?:tagfmt mlst =
+  let-inline ctx \gather ?:tagfmt mlst =
     % tagfmt の unwrap
     let tagfmt = tagfmt |> Option.from default-tagfmt in
     inline-fil ++
-      embed-block-breakable ctx (read-block ctx '<+eqn-gather?:(tagfmt)(mlst);>)
+      embed-block-breakable ctx (read-block ctx '<+gather?:(tagfmt)(mlst);>)
         ++ omit-skip-after
 
   let-block ctx +eqn ?:tagfmt m =
     % tagfmt の unwrap
     let tagfmt = tagfmt |> Option.from default-tagfmt in
   read-block ctx '<
-    +eqn-gather?:(tagfmt)[m];
+    +gather?:(tagfmt)[m];
   >
 
-% +eqn-align
+  let-inline ctx \eqn ?:tagfmt m =
+    % tagfmt の unwrap
+    let tagfmt = tagfmt |> Option.from default-tagfmt in
+    inline-fil ++
+      embed-block-breakable ctx (read-block ctx '<+eqn?:(tagfmt)(m);>)
+        ++ omit-skip-after
 
-  let-block ctx +eqn-align ?:tagfmt mlst =
+% +align
+
+  let-block ctx +align ?:tagfmt mlst =
     % tagfmt の unwrap
     let tagfmt = tagfmt |> Option.from default-tagfmt in
 
@@ -420,16 +428,16 @@ end = struct
       |> List.map-adjacent (align-eqn ctx tagfmt [1.0; 0.0] lst-max-wid) |> List.concat in
     bb-lst |> List.fold-left (+++) block-nil
 
-  let-inline ctx \eqn-align ?:tagfmt mlst =
+  let-inline ctx \align ?:tagfmt mlst =
     % tagfmt の unwrap
     let tagfmt = tagfmt |> Option.from default-tagfmt in
     inline-fil ++
-      embed-block-breakable ctx (read-block ctx '<+eqn-align?:(tagfmt)(mlst);>)
+      embed-block-breakable ctx (read-block ctx '<+align?:(tagfmt)(mlst);>)
         ++ omit-skip-after
 
-% +eqn-alignat
+% +alignat
 
-  let-block ctx +eqn-alignat ?:tagfmt ncol mlst =
+  let-block ctx +alignat ?:tagfmt ncol mlst =
     % tagfmt の unwrap
     let tagfmt = tagfmt |> Option.from notag in
 
@@ -449,14 +457,14 @@ end = struct
       |> List.map-adjacent (align-eqn ctx tagfmt align-coefs lst-max-wid) |> List.concat in
     bb-lst |> List.fold-left (+++) block-nil
 
-  let-inline ctx \eqn-alignat ?:tagfmt ncol mlst =
+  let-inline ctx \alignat ?:tagfmt ncol mlst =
     % tagfmt の unwrap
     let tagfmt = tagfmt |> Option.from notag in
     inline-fil ++
-      embed-block-breakable ctx (read-block ctx '<+eqn-alignat?:(tagfmt)(ncol)(mlst);>)
+      embed-block-breakable ctx (read-block ctx '<+alignat?:(tagfmt)(ncol)(mlst);>)
         ++ omit-skip-after
 
-% \eqn-aligned
+% \aligned
 
   let math-to-aligned-ib ctx idx m mprevopt mnextopt =
     let lengap = get-font-size ctx *' 2. in
@@ -480,7 +488,7 @@ end = struct
       | None    -> ib ++ inline-fil
       | Some(_) -> ib ++ inline-fil ++ inline-skip lengap
 
-  let-math \eqn-aligned mlst =
+  let-math \aligned mlst =
     let embedf ctx =
       let vlen = 4pt in
 
@@ -500,9 +508,9 @@ end = struct
     in
     text-in-math MathOrd embedf
 
-% \eqn-cases
+% \cases
 
-  let-math \eqn-cases mlst =
+  let-math \cases mlst =
     let aligner i j ib =
       if j mod 2 == 0 then ib ++ inline-fil
       else inline-fil ++ ib
