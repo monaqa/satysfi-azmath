@@ -226,14 +226,14 @@ document (|
     }
 
     +p{
-      なお、デフォルトでは `+gather` 環境は「全体は中央揃えだが、式は左揃え」となっています。
-      後述するパラメータの値を変更することにより、全ての式を中央揃えにすることもできます。
+      なお、デフォルトでは `+gather` 環境は中央揃えとなっています。
+      後述するパラメータの値を変更することにより、式を左揃えにすることもできます。
       以下の例と上の例を見比べてみてください。
     }
 
 
     +example(```
-    +with-param(AZMathEquation.eqn-gather-align-coef)(0.5)<
+    +with-param(AZMathEquation.eqn-gather-align-coef)(0.0)<
       +gather(${
         | \p{x + y}^2 = x^2 + 2xy + y^2,
         | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab,
@@ -241,7 +241,7 @@ document (|
         |});
       >
     ```) <%
-     +with-param(AZMathEquation.eqn-gather-align-coef)(0.5)<%
+     +with-param(AZMathEquation.eqn-gather-align-coef)(0.0)<%
       +gather(${
         | \p{x + y}^2 = x^2 + 2xy + y^2,
         | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab,
@@ -543,7 +543,7 @@ document (|
 +section{アクセント}<%
 
   +p{
-    数式にアクセントを追加することができます．
+    `\hat{x}` などとすることによって、数式にアクセントを追加することができます．
   }
 
   +gather(${
@@ -567,6 +567,9 @@ document (|
 
   +p{
     他のアクセントについても同様に付けることができます．
+    現時点で使用可能なコマンドは
+    `\hat{}`, `\tilde{}`, `\bar{}`, `\adot{}`, `\ddot{}`, `\breve{}`
+    です。
   }
 
   +gather(${
@@ -586,6 +589,10 @@ document (|
       \ddot{g}, \ddot{h}, \ddot{i}, \ddot{j}, \ddot{k}, \ddot{l}, \ddot{m},
       \ddot{n}, \ddot{o}, \ddot{p}, \ddot{q}, \ddot{r}, \ddot{s},
       \ddot{t}, \ddot{u}, \ddot{v}, \ddot{w}, \ddot{x}, \ddot{y}, \ddot{z}.
+    | \breve{a}, \breve{b}, \breve{c}, \breve{d}, \breve{e}, \breve{f},
+      \breve{g}, \breve{h}, \breve{i}, \breve{j}, \breve{k}, \breve{l}, \breve{m},
+      \breve{n}, \breve{o}, \breve{p}, \breve{q}, \breve{r}, \breve{s},
+      \breve{t}, \breve{u}, \breve{v}, \breve{w}, \breve{x}, \breve{y}, \breve{z}.
     |});
 
   +p{
@@ -595,11 +602,21 @@ document (|
     場当たり的な解決策として，オプション引数に補正係数を指定して
     `\hat?:!(0.18){f}` などとすれば補正することができます．
   }
-  +gather(${
-    | \hat{f}, \hat?:!(0.18){f},
-    | \hat{J}, \hat?:!(0.20){J},
-    | \hat{m}, \hat?:!(0.-.0.15){m}.
-    |});
+
+  +example(```
+    +alignat(3)(${
+      | \hat{f} |= \hat?:!(0.18){f},
+      | \hat{J} |= \hat?:!(0.20){J},
+      | \hat{m} |= \hat?:!(0.-.0.15){m}.
+      |});
+  ```)<%
+    +alignat(3)(${
+      | \hat{f} |= \hat?:!(0.18){f},
+      | \hat{J} |= \hat?:!(0.20){J},
+      | \hat{m} |= \hat?:!(0.-.0.15){m}.
+      |});
+  >%
+
 
   +p{
     現時点での実用的な運用方法は，文書で使いそうなアクセント変数を
@@ -621,16 +638,26 @@ document (|
     フォントに入っている括弧は用いていません．
   }
 
-  +gather(${
-    | \lim_{x \to 0}\paren{\frac{1}{2} \paren{\paren{\paren{x + 1} + x}^2}}^2
-    | \lim_{x \to 0}\p{\frac{1}{2} \p{\p{\p{x + 1} + x}^2}}^2
-    |});
+  +example(```
+    +gather(${
+      | \p{\int_0^\infty \frac{\sin x}{\sqrt{x}} \ordd x}^2
+        = \sum_{k=0}^\infty
+          \frac{\p{2k}\!}{2^{2k}\p{k\!}^2} \frac{1}{2k + 1}
+        = \prod_{k=1}^\infty \frac{4k^2}{4k^2 - 1}
+        = \frac{\pi}{2}
+      | \lim_{x \to 0}\p{\frac{1}{2} \p{\p{\p{x + 1} + x}^2}}
+      |});
+  ```)<%
+    +gather(${
+      | \p{\int_0^\infty \frac{\sin x}{\sqrt{x}} \ordd x}^2
+        = \sum_{k=0}^\infty
+          \frac{\p{2k}\!}{2^{2k}\p{k\!}^2} \frac{1}{2k + 1}
+        = \prod_{k=1}^\infty \frac{4k^2}{4k^2 - 1}
+        = \frac{\pi}{2}
+      | \lim_{x \to 0}\p{\frac{1}{2} \p{\p{\p{x + 1} + x}^2}}
+      |});
+  >%
 
-  +gather(${
-    | \p{\int_0^\infty \frac{\sin x}{\sqrt{x}} \ordd x}^2
-      = \sum_{k=0}^\infty \frac{\p{2k}\!}{2^{2k}\p{k\!}^2} \frac{1}{2k + 1}
-      = \prod_{k=1}^\infty \frac{4k^2}{4k^2 - 1} = \frac{\pi}{2}
-    |});
 
   +p{
     `azmath` で定義された括弧にはいくつかの特徴があります．
@@ -645,29 +672,39 @@ document (|
 
   +p{
     2番目については，以下のような例を見るとよりはっきりと違いが分かるでしょう．
+    左側が標準で用意されている `\paren` 及び `\sqbracket`、
+    右側が AZmath で定義されている `\p` 及び `\pB` です。
   }
 
-  +gather(${
-    | \paren{\paren{\paren{\paren{\paren{\paren{\paren{x}}}}}}}
-    | \p{\p{\p{\p{\p{\p{\p{x}}}}}}}
-    |});
+  +alignat(2)(${
+    | \paren{\paren{\paren{\paren{\paren{\paren{\paren{x}}}}}}}, |
+    | \p{\p{\p{\p{\p{\p{\p{x}}}}}}}. |
 
-  +gather(${
-    | \sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{x}}}}}}}
-    | \pB{\pB{\pB{\pB{\pB{\pB{\pB{x}}}}}}}
+    | \sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{x}}}}}}}, |
+    | \pB{\pB{\pB{\pB{\pB{\pB{\pB{x}}}}}}}. |
     |});
 
   +p{
     括弧の種類はいくつか用意されています．
   }
 
-  +gather(${
-    | \lim_{x \to 0}\pb{\frac{1}{2} \pb{\pb{\pb{x + 1} + x}^2}}
-    | \lim_{x \to 0}\pB{\frac{1}{2} \pB{\pB{\pB{x + 1} + x}^2}}
-    | \lim_{x \to 0}\pabs{\frac{1}{2} \pabs{\pabs{\pabs{x + 1} + x}^2}}
-    | \lim_{x \to 0}\pnorm{\frac{1}{2} \pnorm{\pnorm{\pnorm{x + 1} + x}^2}}
-    | \lim_{x \to 0}\pangle{\frac{1}{2} \pangle{\pangle{\pangle{x + 1} + x}^2}}^2
-    |});
+  +example(```
+    +gather(${
+      | \pb{\frac{1}{2} \pb{\pb{\pb{x + 1} + x}^2}}
+      | \pB{\frac{1}{2} \pB{\pB{\pB{x + 1} + x}^2}}
+      | \pabs{\frac{1}{2} \pabs{\pabs{\pabs{x + 1} + x}^2}}
+      | \pnorm{\frac{1}{2} \pnorm{\pnorm{\pnorm{x + 1} + x}^2}}
+      | \pangle{\frac{1}{2} \pangle{\pangle{\pangle{x + 1} + x}^2}}^2
+      |});
+  ```)<%
+    +gather(${
+      | \pb{\frac{1}{2} \pb{\pb{\pb{x + 1} + x}^2}}
+      | \pB{\frac{1}{2} \pB{\pB{\pB{x + 1} + x}^2}}
+      | \pabs{\frac{1}{2} \pabs{\pabs{\pabs{x + 1} + x}^2}}
+      | \pnorm{\frac{1}{2} \pnorm{\pnorm{\pnorm{x + 1} + x}^2}}
+      | \pangle{\frac{1}{2} \pangle{\pangle{\pangle{x + 1} + x}^2}}^2
+      |});
+  >%
 
   +p{
     時には括弧の大きさを自動ではなく手動で調整したい場合もあるかもしれません．
@@ -675,34 +712,63 @@ document (|
     あたかも中身が20ptの高さを持っているかのように括弧を組むことができます．
   }
 
-  +gather(${
-    | \p?:!(10pt){xxx} = \p?:!(15pt){xxx} = \p?:!(30pt){xxx}
-    | \p{xxx} = \p-big{xxx} = \p-Big{xxx} = \p-bigg{xxx} = \p-Bigg{xxx}
-    | \lim_{x \to 0}\pangle?:!(12pt){\frac{1}{2} \pangle?:!(8pt){\pangle?:!(16pt){\pangle?:!(12pt){x + 1} + x}^2}}
-    |});
+  +example(```
+    +gather(${
+      | \p?:!(10pt){xxx} = \p?:!(15pt){xxx} = \p?:!(30pt){xxx}
+      | \pangle?:!(12pt){ \frac{1}{2} \pangle?:!(8pt){
+          \pangle?:!(16pt){\pangle?:!(12pt){x + 1} + x}^2
+          }}
+      |});
+  ```)<%
+    +gather(${
+      | \p?:!(10pt){xxx} = \p?:!(15pt){xxx} = \p?:!(30pt){xxx}
+      | \pangle?:!(12pt){ \frac{1}{2} \pangle?:!(8pt){
+          \pangle?:!(16pt){\pangle?:!(12pt){x + 1} + x}^2
+          }}
+      |});
+  >%
 
   +p{
+    数式を囲む括弧とは少し異なる括弧のコマンドとして、
     `\overbrace{m}`, `\underbrace{m}` で数式の上下に波括弧を描く事ができます．
     数式の一部に注釈を入れたいときなどに使えます．
   }
 
-  +gather(
-    let m = ${\frac{\neg b \pm \sqrt{b^2 - 4ac}}{2a}} in
-    ${
-      | x = \overbrace{#m} + \overbrace{\pb{#m} + #m}^{\text!{ここ大事！}}
-      | x = \underbrace{#m + \pb{#m}} + \underbrace{#m}_{\text!{ここ大事！}}
-      |});
+  +example(```
+    +gather(
+      let m = ${\frac{\neg b \pm \sqrt{b^2 - 4ac}}{2a}} in
+      ${
+        | x = \overbrace{#m} + \overbrace{\pb{#m} + #m}^{\text!{大事！}}
+        | x = \underbrace{#m + \pb{#m}} + \underbrace{#m}_{\text!{大事！}}
+        |});
+  ```)<%
+    +gather(
+      let m = ${\frac{\neg b \pm \sqrt{b^2 - 4ac}}{2a}} in
+      ${
+        |x = \overbrace{#m} + \overbrace{\pb{#m} + #m}^{\text!{大事！}}
+        |x = \underbrace{#m + \pb{#m}} + \underbrace{#m}_{\text!{大事！}}
+        |});
+  >%
 
   +p{
     片方が片方に内包される形であれば，入れ子にして使うことも可能です．
   }
 
-  +gather(${
-    | x = \underbrace{
-        \overbrace{ a + \underbrace{b + c}_{=0} }^{\text!{foo}}
-        + d + \overbrace{e + f}
-      }_{=0}
-    |});
+  +example(```
+    +gather(${
+      | x = \underbrace{
+          \overbrace{ a + \underbrace{b + c}_{=0} }^{\text!{foo}}
+          + d + \overbrace{e + f}
+        }_{=0}
+      |});
+  ```)<%
+    +gather(${
+      | x = \underbrace{
+          \overbrace{ a + \underbrace{b + c}_{=0} }^{\text!{foo}}
+          + d + \overbrace{e + f}
+        }_{=0}
+      |});
+  >%
 
 >%
 
@@ -710,53 +776,51 @@ document (|
 
   +p{
     行列を描くことも出来ます．
+    `\pmatrix!(n){| ... elements ... |}` とすることで、
+    ${n} 個の列を持つ行列を組むことができます。
+    なお、行の数は要素数から自動で判断されます。
   }
 
-  +gather(${
-    | A = \pmatrix!(2){| a | b | c | d |}
-    | A^{-1} = \frac{1}{ad - bc} \pmatrix!(2){| d | \neg b | \neg c | a |}
-      = \pmatrix!(2){
-      | \frac{d}{ad - bc}  | \neg \frac{b}{ad - bc}
-      | \neg \frac{c}{ad - bc} | \frac{a}{ad - bc}
-      |}
-    |});
+
+  +example(```
+    +gather(${
+      | A = \pmatrix!(2){| a | b | c | d |}
+      | A^{-1} = \frac{1}{ad - bc} \pmatrix!(2){|d|\neg b|\neg c|a|}
+        = \pmatrix!(2){
+        |      \frac{d}{ad - bc} | \neg \frac{b}{ad - bc}
+        | \neg \frac{c}{ad - bc} |      \frac{a}{ad - bc}
+        |}
+      |});
+  ```)<%
+    +gather(${
+      | A = \pmatrix!(2){| a | b | c | d |}
+      | A^{-1} = \frac{1}{ad - bc} \pmatrix!(2){|d|\neg b|\neg c|a|}
+        = \pmatrix!(2){
+        |      \frac{d}{ad - bc} | \neg \frac{b}{ad - bc}
+        | \neg \frac{c}{ad - bc} |      \frac{a}{ad - bc}
+        |}
+      |});
+  >%
 
   +p{
     行列の括弧は色々変えられます．
   }
 
-  +align(${
-    | A |= \matrix!(2){| a | b | c | d |}
-    | A |= \bmatrix!(2){| a | b | c | d |}
-    | A |= \vmatrix!(2){| a | b | c | d |}
-    | A |= \dmatrix!(2){| a | b | c | d |}
-    |});
-
-
-  % 別行立て数式の途中で改ページ可能
-  +gather(
-    let-math \term n = ${\frac{x^{#n}}{#n\!}} in
-    ${
-    | e^x = 1 + \term{1} + \term{2} + \term{3} + \term{4} + \term{5} + \cdots
-    % 数式が長くなると自動でタグが下に移動
-    | e^x = 1 + \term{1} + \term{2} + \term{3} + \term{4}
-        + \term{5} + \term{6} + \term{7} + \term{8}
-        + \term{9} + \term{10} + \term{11} + \term{12} + \cdots
-    % \label で相互参照可能なラベルを付与
-    | \cos x = 1 - \term{2} + \term{4} - \term{6} + \cdots \label!(`eqn-cos`)
-    | \sin x = x - \term{3} + \term{5} - \term{7} + \cdots \label?:!(`sinの式やで`)!(`eqn-sin`)
-    |});
-
-  +p{皆はどの式が好き？僕は (\ref(`eq:eqn-cos`);) と (\ref(`eq:eqn-sin`);)が好き！}
-
-  +align(
-    let-math \term n = ${\frac{x^{#n}}{#n\!}} in
-    ${
-    % \notag: タグを付けない、 \keeppage: 式の直後の位置で改ページしない
-    | e^x |= \sum_{k=0}^\infty \term{k}  \notag\keeppage
-    | |= 1 + \term{1} + \term{2} + \term{3} + \term{4} + \term{5} + \cdots
-    |});
-
+  +example(```
+    +align(${
+      | A |= \matrix!(2){| a | b | c | d |}
+      | A |= \bmatrix!(2){| a | b | c | d |}
+      | A |= \vmatrix!(2){| a | b | c | d |}
+      | A |= \dmatrix!(2){| a | b | c | d |}
+      |});
+  ```)<%
+    +align(${
+      | A |= \matrix!(2){| a | b | c | d |}
+      | A |= \bmatrix!(2){| a | b | c | d |}
+      | A |= \vmatrix!(2){| a | b | c | d |}
+      | A |= \dmatrix!(2){| a | b | c | d |}
+      |});
+  >%
 
 >%
 
