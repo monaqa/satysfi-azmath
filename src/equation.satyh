@@ -12,18 +12,17 @@
 @import: matrices
 
 % 別行立て数式につけるメタ情報。
-type labelmeta = (|
+type eqnmeta = (|
   tag: string option;
   label: string option;
   no-label-flag: bool;
   keep-page-flag: bool;
 |)
 
-type labelfmt = context -> labelmeta -> inline-boxes option
+% メタ情報からタグを生成する関数。
+type tagfmt = context -> eqnmeta -> inline-boxes option
 
 module AZMathEquation : sig
-
-  type labelmeta
 
 % パラメータ・カウンタ
   % 別行立て数式環境の途中で改ページを許可するか。
@@ -47,21 +46,21 @@ module AZMathEquation : sig
 
 % 数式環境
   % 1つの式を別行立てで表示する。
-  direct +eqn : [labelfmt?;math;] block-cmd
+  direct +eqn : [tagfmt?; math;] block-cmd
   % 複数の式を中央揃えにする。
-  direct +eqn-gather : [labelfmt?;math list;] block-cmd
-  direct \eqn-gather : [labelfmt?;math list;] inline-cmd
+  direct +eqn-gather : [tagfmt?; math list;] block-cmd
+  direct \eqn-gather : [tagfmt?; math list;] inline-cmd
   % マーカーを付けた位置で複数の式を揃える。
-  direct +eqn-align  : [labelfmt?; math list;] block-cmd
-  direct \eqn-align  : [labelfmt?; math list;] inline-cmd
+  direct +eqn-align  : [tagfmt?; math list;] block-cmd
+  direct \eqn-align  : [tagfmt?; math list;] inline-cmd
   % 横並びになった複数の式を揃える。
-  direct +eqn-alignat : [labelfmt?; int; math list;] block-cmd
-  direct \eqn-alignat : [labelfmt?; int; math list;] inline-cmd
+  direct +eqn-alignat : [tagfmt?; int; math list;] block-cmd
+  direct \eqn-alignat : [tagfmt?; int; math list;] inline-cmd
 
 % 数式の埋め込み
   % 数式内部で \eqn-align
   direct \eqn-aligned : [math list;] math-cmd
-  % 場合わけ
+  % 場合分け
   direct \eqn-cases : [math list;] math-cmd
 
 % ラベル指定
@@ -74,33 +73,39 @@ module AZMathEquation : sig
   % \notag\keeppage と同効果。 To Be Continued...
   direct \tbc : [] math-cmd
 
-  % \label コマンドがつかない限り、基本的にラベルを付けないフォーマット。
-  val notag : labelfmt
+  % 何も指定しない限り、連番のタグを付けるフォーマット。
+  val default-tagfmt : tagfmt
+  % \label コマンドがつかない限りタグを付けないフォーマット。
+  val notag : tagfmt
+  % context とタグ文字列を受け取りインラインボックス列を返すような関数を元に tagfmt を生成する。
+  val make-tagfmt : (context -> string -> inline-boxes) -> tagfmt
 
 end = struct
 
 % convenient functions
 
+  % アノテーションを挿入する。
   let ib-annotation ?:ht key =
     let ht = ht |> Option.from 0pt in
     inline-graphics 0pt 0pt 0pt (fun (x, y) -> (
       let () = register-destination key (x, y +' ht) in []
     ))
 
-  let create-max-height-vphantom lst-ib inner =
-    % inline-boxes のリストに対し，それらの最大の高さ/最大の深さを求め，
-    % それらをそれぞれ高さ・深さにもつよう加工した inline-boxes を返す．
-    % ただし， width は 0 とする．
-    let maximum len1 len2 = if len1 >' len2 then len1 else len2 in
-    let get-natural-height ib = let (_, h, _) = get-natural-metrics ib in h in
-    let get-natural-depth  ib = let (_, _, d) = get-natural-metrics ib in d in
-    let max-height = List.fold-right maximum 0pt (List.map get-natural-height lst-ib) in
-    let max-depth = List.fold-right maximum 0pt (List.map get-natural-depth lst-ib) in
-
-    let (w, _, _) = get-natural-metrics inner in
-    inline-graphics 0pt max-height max-depth (fun (x, y) -> [
-      draw-text (x -' w, y) inner
-    ])
+  % % なんのために実装したか忘れた
+  % let create-max-height-vphantom lst-ib inner =
+  %   % inline-boxes のリストに対し，それらの最大の高さ/最大の深さを求め，
+  %   % それらをそれぞれ高さ・深さにもつよう加工した inline-boxes を返す．
+  %   % ただし， width は 0 とする．
+  %   let maximum len1 len2 = if len1 >' len2 then len1 else len2 in
+  %   let get-natural-height ib = let (_, h, _) = get-natural-metrics ib in h in
+  %   let get-natural-depth  ib = let (_, _, d) = get-natural-metrics ib in d in
+  %   let max-height = List.fold-right maximum 0pt (List.map get-natural-height lst-ib) in
+  %   let max-depth = List.fold-right maximum 0pt (List.map get-natural-depth lst-ib) in
+  %
+  %   let (w, _, _) = get-natural-metrics inner in
+  %   inline-graphics 0pt max-height max-depth (fun (x, y) -> [
+  %     draw-text (x -' w, y) inner
+  %   ])
 
 % parameter
 
@@ -118,7 +123,8 @@ end = struct
 
 % parameter for extracting meta information from math text
 
-  % metadata を表すパラメータ。
+  % metadata を表すパラメータ。この可変参照に値を落とし込むことで、
+  % math にメタ情報を埋め込んだり取り出したりする。
   let param-label-meta = AZMathParam.make (|
     tag = None;
     label = None;
@@ -127,7 +133,8 @@ end = struct
   |)
 
   % metadata を更新するコマンドたち。
-  % text-in-math を使わないとうまくいかない。
+  % いずれも text-in-math を使わないとうまくいかない。
+
   let-math \notag =
     let mathf ctx =
       let eqn-meta = param-label-meta |> AZMathParam.get in
@@ -170,25 +177,21 @@ end = struct
 
   let-math \tbc = ${\notag\keeppage}
 
-% labelfmt
+% tagfmt
 
-  % label-format のデフォルト値。
-  let default-labelfmt ctx label-meta =
+  let make-tagfmt str-to-ib-f ctx meta =
     % no-label-flag が立っていたら問答無用でラベルなし
-    if label-meta#no-label-flag then None else
-      let tagstr = match label-meta#tag with
+    if meta#no-label-flag then None else
+      let tagstr = match meta#tag with
         | Some(tag) -> tag  % tag が指定されていたらそれを使う
         | None -> (  % デフォルトでは連番の数字
             let v = ctr |> Counter.inc in
             arabic v
         )
       in
-      let ib-tag =
-        let it = embed-string tagstr in
-        read-inline ctx {(#it;)}
-      in
+      let ib-tag = str-to-ib-f ctx tagstr in
       % 相互参照への登録
-      let ib-ref = match label-meta#label with
+      let ib-ref = match meta#label with
         | None -> inline-nil
         | Some(label) ->
             let (_, ht, _) = get-natural-metrics ib-tag in
@@ -200,12 +203,17 @@ end = struct
       in
       Some(ib-ref ++ ib-tag)
 
-  let notag ctx label-meta =
-    % no-label-flag が立っていたら問答無用でラベルなし
-    if label-meta#no-label-flag then None else
-      match label-meta#label with
-      | None -> None
-      | Some(_) -> default-labelfmt ctx label-meta
+  let default-tagfmt =
+    let str-to-ib-f ctx tagstr =
+      let it = embed-string tagstr in
+      read-inline ctx {(#it;)}
+    in
+    make-tagfmt str-to-ib-f
+
+  let notag ctx meta =
+    match meta#label with
+    | None -> None
+    | Some(_) -> default-tagfmt ctx meta
 
 % common functions for equation environment
 
@@ -274,7 +282,7 @@ end = struct
   % [Parameters]
   % ctx: context
   %   テキスト処理文脈
-  % labelfmt: labelfmt
+  % tagfmt: tagfmt
   %   ラベル・タグのフォーマット
   % align-coefs: float list s.t. length is N
   %   整列時の係数（0.0なら左揃え、1.0なら右揃え）
@@ -287,7 +295,7 @@ end = struct
   %   タグ情報。
   % [Returns] block-boxes list
   %   テキストが整列されたブロックボックス列
-  let align-eqn ctx labelfmt align-coefs lst-max-wid (ib-lst, meta) prev next =
+  let align-eqn ctx tagfmt align-coefs lst-max-wid (ib-lst, meta) prev next =
     let ib-lst-with-space =
       List.zip (List.zip align-coefs lst-max-wid) ib-lst
         |> List.map (fun ((ratio, wid), ib) -> add-spaces-with-ratio- ratio wid ib)
@@ -310,8 +318,8 @@ end = struct
     in
     let ctx = ctx |> set-paragraph-margin mgn-upper mgn-lower in
 
-    match (labelfmt ctx meta) with
-    | None ->
+    match (tagfmt ctx meta) with
+    | None -> % 付けるべきタグが存在しないとき
         [
           % 上側は allow-display-break パラメータで改行を許すか指定。
           % 下側は \keeppage が付いているかどうかで改行を許すか既定。
@@ -319,16 +327,16 @@ end = struct
             (inline-skip wid-space-lr-math) ++ ib-concat ++ (inline-skip wid-space-lr-math)
           )
         ]
-    | Some(ib-tag) ->
+    | Some(ib-tag) -> % 付けるべきタグがあるとき
       % タグと数式が重なるかどうかには、最も右にある余白の情報が必要
       let wid-right-space =
         List.last ib-lst-with-space |> Option.from inline-nil
                                     |> get-natural-width
       in
-
       let min-gap = (AZMathParam.get min-gap-between-eqn-and-tag) ctx in
       let wid-tag = get-natural-width ib-tag in
       let wid-space-bwn-eqn-tag = wid-space-lr-math -' wid-tag in
+
       % 数式の右端とタグの左端の間に、 min-gap より大きな余白があるか？
       if wid-right-space +' wid-space-bwn-eqn-tag >' min-gap then
         % 十分な余白があれば数式とタグを同じ行に表示
@@ -359,9 +367,9 @@ end = struct
 
 % +eqn-gather
 
-  let-block ctx +eqn-gather ?:labelfmt mlst =
-    % labelfmt の unwrap
-    let labelfmt = labelfmt |> Option.from default-labelfmt in
+  let-block ctx +eqn-gather ?:tagfmt mlst =
+    % tagfmt の unwrap
+    let tagfmt = tagfmt |> Option.from default-tagfmt in
     let align-coef = AZMathParam.get eqn-gather-align-coef in
 
     % [m1; m2; m3; m4; ...] を [[m1]; [m2]; [m3]; [m4]; ...] にする
@@ -375,28 +383,28 @@ end = struct
     in
 
     let bb-lst = ib-meta-lst
-      |> List.map-adjacent (align-eqn ctx labelfmt [align-coef] lst-max-wid) |> List.concat in
+      |> List.map-adjacent (align-eqn ctx tagfmt [align-coef] lst-max-wid) |> List.concat in
     bb-lst |> List.fold-left (+++) block-nil
 
-  let-inline ctx \eqn-gather ?:labelfmt mlst =
-    % labelfmt の unwrap
-    let labelfmt = labelfmt |> Option.from default-labelfmt in
+  let-inline ctx \eqn-gather ?:tagfmt mlst =
+    % tagfmt の unwrap
+    let tagfmt = tagfmt |> Option.from default-tagfmt in
     inline-fil ++
-      embed-block-breakable ctx (read-block ctx '<+eqn-gather?:(labelfmt)(mlst);>)
+      embed-block-breakable ctx (read-block ctx '<+eqn-gather?:(tagfmt)(mlst);>)
         ++ omit-skip-after
 
-  let-block ctx +eqn ?:labelfmt m =
-    % labelfmt の unwrap
-    let labelfmt = labelfmt |> Option.from default-labelfmt in
+  let-block ctx +eqn ?:tagfmt m =
+    % tagfmt の unwrap
+    let tagfmt = tagfmt |> Option.from default-tagfmt in
   read-block ctx '<
-    +eqn-gather?:(labelfmt)[m];
+    +eqn-gather?:(tagfmt)[m];
   >
 
 % +eqn-align
 
-  let-block ctx +eqn-align ?:labelfmt mlst =
-    % labelfmt の unwrap
-    let labelfmt = labelfmt |> Option.from default-labelfmt in
+  let-block ctx +eqn-align ?:tagfmt mlst =
+    % tagfmt の unwrap
+    let tagfmt = tagfmt |> Option.from default-tagfmt in
 
     % [m1; m2; m3; m4; ...] を [[m1; m2]; [m3; m4]; ...] にする
     let math-llst = mlst |> group-by- 2 in
@@ -409,25 +417,24 @@ end = struct
     in
 
     let bb-lst = ib-meta-lst
-      |> List.map-adjacent (align-eqn ctx labelfmt [1.0; 0.0] lst-max-wid) |> List.concat in
+      |> List.map-adjacent (align-eqn ctx tagfmt [1.0; 0.0] lst-max-wid) |> List.concat in
     bb-lst |> List.fold-left (+++) block-nil
 
-  let-inline ctx \eqn-align ?:labelfmt mlst =
-    % labelfmt の unwrap
-    let labelfmt = labelfmt |> Option.from default-labelfmt in
+  let-inline ctx \eqn-align ?:tagfmt mlst =
+    % tagfmt の unwrap
+    let tagfmt = tagfmt |> Option.from default-tagfmt in
     inline-fil ++
-      embed-block-breakable ctx (read-block ctx '<+eqn-align?:(labelfmt)(mlst);>)
+      embed-block-breakable ctx (read-block ctx '<+eqn-align?:(tagfmt)(mlst);>)
         ++ omit-skip-after
 
 % +eqn-alignat
 
-  let-block ctx +eqn-alignat ?:labelfmt ncol mlst =
-    % labelfmt の unwrap
-    let labelfmt = labelfmt |> Option.from notag in
+  let-block ctx +eqn-alignat ?:tagfmt ncol mlst =
+    % tagfmt の unwrap
+    let tagfmt = tagfmt |> Option.from notag in
 
     let align-coefs = [1.0; 0.0] |> List.cycle- ncol in
 
-    % [m1; m2; m3; m4; ...] を [[m1; m2]; [m3; m4]; ...] にする
     let math-llst = mlst |> group-by- (ncol * 2) in
     % (inline-boxes list * meta) list を得る
     let space-bwn-eqn = (get-font-size ctx) *' 2. in
@@ -439,14 +446,14 @@ end = struct
     in
 
     let bb-lst = ib-meta-lst
-      |> List.map-adjacent (align-eqn ctx labelfmt align-coefs lst-max-wid) |> List.concat in
+      |> List.map-adjacent (align-eqn ctx tagfmt align-coefs lst-max-wid) |> List.concat in
     bb-lst |> List.fold-left (+++) block-nil
 
-  let-inline ctx \eqn-alignat ?:labelfmt ncol mlst =
-    % labelfmt の unwrap
-    let labelfmt = labelfmt |> Option.from notag in
+  let-inline ctx \eqn-alignat ?:tagfmt ncol mlst =
+    % tagfmt の unwrap
+    let tagfmt = tagfmt |> Option.from notag in
     inline-fil ++
-      embed-block-breakable ctx (read-block ctx '<+eqn-alignat?:(labelfmt)(ncol)(mlst);>)
+      embed-block-breakable ctx (read-block ctx '<+eqn-alignat?:(tagfmt)(ncol)(mlst);>)
         ++ omit-skip-after
 
 % \eqn-aligned
