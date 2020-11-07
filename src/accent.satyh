@@ -12,7 +12,7 @@ module AZMathAccent : sig
   direct \bar    : [float?; math;] math-cmd
   direct \adot   : [float?; math;] math-cmd
   direct \ddot   : [float?; math;] math-cmd
-
+  direct \breve  : [float?; math;] math-cmd
   % direct \hat-a : [] math-cmd
 
 end = struct
@@ -65,6 +65,7 @@ end = struct
   let-math \bar    ?:shift inner = accent-scheme ` ̅` 0.5 0.20 shift inner
   let-math \adot   ?:shift inner = accent-scheme ` ̇` 0.5 0.22 shift inner
   let-math \ddot   ?:shift inner = accent-scheme ` ̈` 0.5 0.22 shift inner
+  let-math \breve  ?:shift inner = accent-scheme ` ̆` 0.5 0.28 shift inner
 
   % let accent acc str =
   %   let italic-str =
