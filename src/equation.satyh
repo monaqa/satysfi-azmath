@@ -38,10 +38,9 @@ module AZMathEquation : sig
   % +eqn-gather を用いるときに、式を左揃え・中央揃え・右揃えのどれにするか。
   % 0.0 で左揃え、 0.5 で中央揃え、 1.0 で右揃え。 それ以外の値は非推奨。
   val eqn-gather-align-coef: float AZMathParam.t
-
-  % TODO: 数式環境前後の余白を指定可能にする
-  % val min-gap-after-eqn: (context -> length) AZMathParam.t
-  % val min-gap-before-eqn: (context -> length) AZMathParam.t
+  % 数式環境前後の余白。
+  val vmargin-after-eqn: (context -> length) AZMathParam.t
+  val vmargin-before-eqn: (context -> length) AZMathParam.t
 
   % 数式番号のカウンタ。
   val ctr : Counter.t
@@ -110,6 +109,8 @@ end = struct
   let vmargin-between-eqn-and-tag = AZMathParam.make (fun ctx -> (get-font-size ctx) *' 0.3)
   let min-gap-between-eqn-and-tag = AZMathParam.make (fun ctx -> 2pt)
   let eqn-gather-align-coef = AZMathParam.make 0.0
+  let vmargin-before-eqn = AZMathParam.make (fun ctx -> (get-font-size ctx) *' 1.0)
+  let vmargin-after-eqn = AZMathParam.make (fun ctx -> (get-font-size ctx) *' 1.0)
 
 % counter
 
@@ -286,7 +287,7 @@ end = struct
   %   タグ情報。
   % [Returns] block-boxes list
   %   テキストが整列されたブロックボックス列
-  let align-eqn ctx labelfmt align-coefs lst-max-wid (ib-lst, meta) =
+  let align-eqn ctx labelfmt align-coefs lst-max-wid (ib-lst, meta) prev next =
     let ib-lst-with-space =
       List.zip (List.zip align-coefs lst-max-wid) ib-lst
         |> List.map (fun ((ratio, wid), ib) -> add-spaces-with-ratio- ratio wid ib)
@@ -297,8 +298,17 @@ end = struct
     let wid-space-lr-math = (wid-line -' (get-natural-width ib-concat)) *' 0.5 in
 
     % 数式間の縦の余白を規定する
-    let mgn = (AZMathParam.get vmargin-between-eqn) ctx in
-    let ctx = ctx |> set-paragraph-margin mgn mgn in
+    let mgn-upper =
+      match prev with
+        | Some(_) -> (AZMathParam.get vmargin-between-eqn) ctx
+        | None -> (AZMathParam.get vmargin-before-eqn) ctx
+    in
+    let mgn-lower =
+      match next with
+        | Some(_) -> (AZMathParam.get vmargin-between-eqn) ctx
+        | None -> (AZMathParam.get vmargin-after-eqn) ctx
+    in
+    let ctx = ctx |> set-paragraph-margin mgn-upper mgn-lower in
 
     match (labelfmt ctx meta) with
     | None ->
@@ -337,12 +347,12 @@ end = struct
           % 上側は allow-display-break パラメータで改行を許すか指定。
           % 下側はタグとの境目なので必ず false。
           line-break (AZMathParam.get allow-display-break) false
-            (ctx |> set-paragraph-margin mgn mgn-mid) (
+            (ctx |> set-paragraph-margin mgn-upper mgn-mid) (
             (inline-skip wid-space-lr-math) ++ ib-concat ++ (inline-skip wid-space-lr-math)
           );
           % 上側は数式との境目なので必ず false。
           % 下側は \keeppage が付いているかどうかで改行を許すか既定。
-          line-break false (not meta#keep-page-flag) (ctx |> set-paragraph-margin mgn-mid mgn) (
+          line-break false (not meta#keep-page-flag) (ctx |> set-paragraph-margin mgn-mid mgn-lower) (
             (inline-skip (wid-line -' wid-tag)) ++ ib-tag
           );
         ]
@@ -365,7 +375,7 @@ end = struct
     in
 
     let bb-lst = ib-meta-lst
-      |> List.map (align-eqn ctx labelfmt [align-coef] lst-max-wid) |> List.concat in
+      |> List.map-adjacent (align-eqn ctx labelfmt [align-coef] lst-max-wid) |> List.concat in
     bb-lst |> List.fold-left (+++) block-nil
 
   let-inline ctx \eqn-gather ?:labelfmt mlst =
@@ -399,7 +409,7 @@ end = struct
     in
 
     let bb-lst = ib-meta-lst
-      |> List.map (align-eqn ctx labelfmt [1.0; 0.0] lst-max-wid) |> List.concat in
+      |> List.map-adjacent (align-eqn ctx labelfmt [1.0; 0.0] lst-max-wid) |> List.concat in
     bb-lst |> List.fold-left (+++) block-nil
 
   let-inline ctx \eqn-align ?:labelfmt mlst =
@@ -429,7 +439,7 @@ end = struct
     in
 
     let bb-lst = ib-meta-lst
-      |> List.map (align-eqn ctx labelfmt align-coefs lst-max-wid) |> List.concat in
+      |> List.map-adjacent (align-eqn ctx labelfmt align-coefs lst-max-wid) |> List.concat in
     bb-lst |> List.fold-left (+++) block-nil
 
   let-inline ctx \eqn-alignat ?:labelfmt ncol mlst =

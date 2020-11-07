@@ -9,6 +9,7 @@
 let-block ctx +ctx ctxf bt = read-block (ctxf ctx) bt
 
 let () = AZMathEquation.allow-display-break |> AZMathParam.set true
+% let () = AZMathEquation.vmargin-before-eqn |> AZMathParam.set (fun _ -> 30pt)
 % let () = AZMathEquation.vmargin-between-eqn |> AZMathParam.set (fun _ -> 20pt)
 
 let sbr-labelfmt ctx label-meta =
