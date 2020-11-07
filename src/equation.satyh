@@ -261,13 +261,13 @@ end = struct
     ib-llst |> List.map (fun ib-lst -> ib-lst |> List.map get-natural-width)  % length に変換
             |> List.fold-left vec-max (0pt |> List.repeat ncol)
 
-  % inline-boxes の前後に特定の比率で余白を付け加え、目標の幅にしてくれる。
+  % inline-boxes の前後に特定の比率で余白を付け加えたリストを返す。
   let add-spaces-with-ratio- ratio wid ib =
     let wid-ib = get-natural-width ib in
     let wid-space = wid -' wid-ib in
     let wid-left-space = wid-space *' ratio in
     let wid-right-space = wid-space *' (1.0 -. ratio) in
-    (inline-skip wid-left-space) ++ ib ++ (inline-skip wid-right-space)
+    [ inline-skip wid-left-space; ib; inline-skip wid-right-space; ]
 
   % 与えられた情報を元に、N 個の inline-boxes を揃えつつ組む。
   % [Parameters]
@@ -290,6 +290,7 @@ end = struct
     let ib-lst-with-space =
       List.zip (List.zip align-coefs lst-max-wid) ib-lst
         |> List.map (fun ((ratio, wid), ib) -> add-spaces-with-ratio- ratio wid ib)
+        |> List.concat
     in
     let ib-concat = ib-lst-with-space |> List.fold-left (++) inline-nil in
     let wid-line = get-text-width ctx in
@@ -309,10 +310,18 @@ end = struct
           )
         ]
     | Some(ib-tag) ->
+      % タグと数式が重なるかどうかには、最も右にある余白の情報が必要
+      let wid-right-space =
+        List.last ib-lst-with-space |> Option.from inline-nil
+                                    |> get-natural-width
+      in
+
       let min-gap = (AZMathParam.get min-gap-between-eqn-and-tag) ctx in
       let wid-tag = get-natural-width ib-tag in
       let wid-space-bwn-eqn-tag = wid-space-lr-math -' wid-tag in
-      if wid-space-bwn-eqn-tag >' min-gap then
+      % 数式の右端とタグの左端の間に、 min-gap より大きな余白があるか？
+      if wid-right-space +' wid-space-bwn-eqn-tag >' min-gap then
+        % 十分な余白があれば数式とタグを同じ行に表示
         [
           % 上側は allow-display-break パラメータで改行を許すか指定。
           % 下側は \keeppage が付いているかどうかで改行を許すか既定。
@@ -322,7 +331,7 @@ end = struct
           )
         ]
       else
-        % ぶつかる場合
+        % 十分な余白がなければ数式の下にタグを表示
         let mgn-mid = (AZMathParam.get vmargin-between-eqn-and-tag) ctx in
         [
           % 上側は allow-display-break パラメータで改行を許すか指定。
