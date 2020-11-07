@@ -35,6 +35,9 @@ module AZMathEquation : sig
   % 数式とタグの間に最低限なければならない余白の大きさ。
   % これを確保できそうにない場合はタグが数式の下に潜る。
   val min-gap-between-eqn-and-tag: (context -> length) AZMathParam.t
+  % +eqn-gather を用いるときに、式を左揃え・中央揃え・右揃えのどれにするか。
+  % 0.0 で左揃え、 0.5 で中央揃え、 1.0 で右揃え。 それ以外の値は非推奨。
+  val eqn-gather-algin-coef: float AZMathParam.t
 
   % TODO: 数式環境前後の余白を指定可能にする
   % val min-gap-after-eqn: (context -> length) AZMathParam.t
@@ -106,6 +109,7 @@ end = struct
   let vmargin-between-eqn = AZMathParam.make (fun ctx -> (get-font-size ctx) *' 0.6)
   let vmargin-between-eqn-and-tag = AZMathParam.make (fun ctx -> (get-font-size ctx) *' 0.3)
   let min-gap-between-eqn-and-tag = AZMathParam.make (fun ctx -> 2pt)
+  let eqn-gather-algin-coef = AZMathParam.make 0.0
 
 % counter
 
@@ -164,6 +168,43 @@ end = struct
     text-in-math MathOrd (fun ctx -> embed-math ctx (mathf ctx))
 
   let-math \tbc = ${\notag\keeppage}
+
+% labelfmt
+
+  % label-format のデフォルト値。
+  let default-labelfmt ctx label-meta =
+    % no-label-flag が立っていたら問答無用でラベルなし
+    if label-meta#no-label-flag then None else
+      let tagstr = match label-meta#tag with
+        | Some(tag) -> tag  % tag が指定されていたらそれを使う
+        | None -> (  % デフォルトでは連番の数字
+            let v = ctr |> Counter.inc in
+            arabic v
+        )
+      in
+      let ib-tag =
+        let it = embed-string tagstr in
+        read-inline ctx {(#it;)}
+      in
+      % 相互参照への登録
+      let ib-ref = match label-meta#label with
+        | None -> inline-nil
+        | Some(label) ->
+            let (_, ht, _) = get-natural-metrics ib-tag in
+            let () = register-cross-reference (`eq:` ^ label ^ `:num`) tagstr in
+            (ib-annotation ?:ht (`eq:` ^ label))
+              ++ hook-page-break ( fun pbinfo _ ->
+                register-cross-reference (`eq:` ^ label ^ `:page`) (arabic pbinfo#page-number)
+              )
+      in
+      Some(ib-ref ++ ib-tag)
+
+  let notag ctx label-meta =
+    % no-label-flag が立っていたら問答無用でラベルなし
+    if label-meta#no-label-flag then None else
+      match label-meta#label with
+      | None -> None
+      | Some(_) -> default-labelfmt ctx label-meta
 
 % common functions for equation environment
 
@@ -297,49 +338,12 @@ end = struct
           );
         ]
 
-
-% labelfmt
-
-  % label-format のデフォルト値。
-  let default-labelfmt ctx label-meta =
-    % no-label-flag が立っていたら問答無用でラベルなし
-    if label-meta#no-label-flag then None else
-      let tagstr = match label-meta#tag with
-        | Some(tag) -> tag  % tag が指定されていたらそれを使う
-        | None -> (  % デフォルトでは連番の数字
-            let v = ctr |> Counter.inc in
-            arabic v
-        )
-      in
-      let ib-tag =
-        let it = embed-string tagstr in
-        read-inline ctx {(#it;)}
-      in
-      % 相互参照への登録
-      let ib-ref = match label-meta#label with
-        | None -> inline-nil
-        | Some(label) ->
-            let (_, ht, _) = get-natural-metrics ib-tag in
-            let () = register-cross-reference (`eq:` ^ label ^ `:num`) tagstr in
-            (ib-annotation ?:ht (`eq:` ^ label))
-              ++ hook-page-break ( fun pbinfo _ ->
-                register-cross-reference (`eq:` ^ label ^ `:page`) (arabic pbinfo#page-number)
-              )
-      in
-      Some(ib-ref ++ ib-tag)
-
-  let notag ctx label-meta =
-    % no-label-flag が立っていたら問答無用でラベルなし
-    if label-meta#no-label-flag then None else
-      match label-meta#label with
-      | None -> None
-      | Some(_) -> default-labelfmt ctx label-meta
-
 % +eqn-gather
 
   let-block ctx +eqn-gather ?:labelfmt mlst =
     % labelfmt の unwrap
     let labelfmt = labelfmt |> Option.from default-labelfmt in
+    let align-coef = AZMathParam.get eqn-gather-algin-coef in
 
     % [m1; m2; m3; m4; ...] を [[m1]; [m2]; [m3]; [m4]; ...] にする
     let math-llst = mlst |> group-by- 1 in
@@ -352,7 +356,7 @@ end = struct
     in
 
     let bb-lst = ib-meta-lst
-      |> List.map (align-eqn ctx labelfmt [0.5] lst-max-wid) |> List.concat in
+      |> List.map (align-eqn ctx labelfmt [align-coef] lst-max-wid) |> List.concat in
     bb-lst |> List.fold-left (+++) block-nil
 
   let-inline ctx \eqn-gather ?:labelfmt mlst =
