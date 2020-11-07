@@ -241,7 +241,7 @@ document (|
         |});
       >
     ```) <%
-     +with-param(AZMathEquation.eqn-gather-align-coef)(0.0)<%
+     +AZMathParam.with-param(AZMathEquation.eqn-gather-align-coef)(0.0)<%
       +gather(${
         | \p{x + y}^2 = x^2 + 2xy + y^2,
         | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab,

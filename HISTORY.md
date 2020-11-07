@@ -1,5 +1,9 @@
 # History
 
+## v0.0.3 (2020-11-07)
+
+* Fix document
+
 ## v0.0.2 (2020-11-07)
 
 ### New commands
