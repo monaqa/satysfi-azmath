@@ -6,14 +6,29 @@
 
 ## Equation environments
 
-* `+eqn-gather`
-* `+eqn-align`
-* `+eqn-alignat`
-* `\eqn-gather`
-* `\eqn-align`
-* `\eqn-alignat`
-* `\eqn-aligned`
-* `\eqn-cases`
+* `+eqn`
+* `+gather`
+* `+align`
+* `+alignat`
+* `\eqn`
+* `\gather`
+* `\align`
+* `\alignat`
+* `\aligned`
+* `\cases`
+
+### label commands
+
+* `\label`
+* `\notag`
+* `\keeppage`
+* `\tbc`
+
+### label format functions
+
+* `default-format`
+* `notag`
+* `make-tagfmt`
 
 ## Accents
 
@@ -22,6 +37,7 @@
 * `\bar`
 * `\adot`
 * `\ddot`
+* `\breve`
 
 ## Matrices
 
@@ -41,3 +57,5 @@
 * `\pangle`
 * `\genparen`
 * `\set-builder`
+* `\overbrace`
+* `\underbrace`

@@ -38,8 +38,8 @@ module AZMathEquation : sig
   % 0.0 で左揃え、 0.5 で中央揃え、 1.0 で右揃え。 それ以外の値は非推奨。
   val eqn-gather-align-coef: float AZMathParam.t
   % 数式環境前後の余白。
-  val vmargin-after-eqn: (context -> length) AZMathParam.t
   val vmargin-before-eqn: (context -> length) AZMathParam.t
+  val vmargin-after-eqn: (context -> length) AZMathParam.t
 
   % 数式番号のカウンタ。
   val ctr : Counter.t

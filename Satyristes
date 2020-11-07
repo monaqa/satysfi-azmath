@@ -3,7 +3,7 @@
 
 (library
   (name "azmath")
-  (version "0.0.1")
+  (version "0.0.2")
   (sources
     ((packageDir "src")
      ))
@@ -15,7 +15,7 @@
 
 (libraryDoc
   (name "azmath-doc")
-  (version "0.0.1")
+  (version "0.0.2")
   (workingDirectory "doc")
   (build
     ((satysfi "azmath.saty" "-o" "azmath.pdf")))

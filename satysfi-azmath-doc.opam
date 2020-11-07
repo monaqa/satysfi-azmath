@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "satysfi-azmath-doc"
-version: "0.0.1"
+version: "0.0.2"
 synopsis: "A SATySFi package containing A-to-Z mathematical commands"
 description: """A SATySFi package containing A-to-Z mathematical commands."""
 
