@@ -37,7 +37,7 @@ module AZMathEquation : sig
   val min-gap-between-eqn-and-tag: (context -> length) AZMathParam.t
   % +eqn-gather を用いるときに、式を左揃え・中央揃え・右揃えのどれにするか。
   % 0.0 で左揃え、 0.5 で中央揃え、 1.0 で右揃え。 それ以外の値は非推奨。
-  val eqn-gather-algin-coef: float AZMathParam.t
+  val eqn-gather-align-coef: float AZMathParam.t
 
   % TODO: 数式環境前後の余白を指定可能にする
   % val min-gap-after-eqn: (context -> length) AZMathParam.t
@@ -109,7 +109,7 @@ end = struct
   let vmargin-between-eqn = AZMathParam.make (fun ctx -> (get-font-size ctx) *' 0.6)
   let vmargin-between-eqn-and-tag = AZMathParam.make (fun ctx -> (get-font-size ctx) *' 0.3)
   let min-gap-between-eqn-and-tag = AZMathParam.make (fun ctx -> 2pt)
-  let eqn-gather-algin-coef = AZMathParam.make 0.0
+  let eqn-gather-align-coef = AZMathParam.make 0.0
 
 % counter
 
@@ -343,7 +343,7 @@ end = struct
   let-block ctx +eqn-gather ?:labelfmt mlst =
     % labelfmt の unwrap
     let labelfmt = labelfmt |> Option.from default-labelfmt in
-    let align-coef = AZMathParam.get eqn-gather-algin-coef in
+    let align-coef = AZMathParam.get eqn-gather-align-coef in
 
     % [m1; m2; m3; m4; ...] を [[m1]; [m2]; [m3]; [m4]; ...] にする
     let math-llst = mlst |> group-by- 1 in
