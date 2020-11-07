@@ -29,7 +29,8 @@ let document record content = StdJaBook.document record '<%
   +ctx(fun ctx -> (
     let fsize = get-font-size ctx in
     ctx |> set-paragraph-margin fsize fsize
-        |> set-leading (fsize *' 1.6)
+        |> set-leading (fsize *' 1.4)
+        |> set-min-gap-of-lines (fsize *' 0.4)
         |> set-code-text-command (command \code)
   ))(content);
 >%
@@ -90,6 +91,7 @@ document (|
   }
 
   +listing{
+    * 数式環境 (`+gather`, `+align`, etc.)
     * アクセント (`\hat`, `\tilde`, etc.)
     * 行列 (`\matrix`, `\pmatrix`, etc.)
     * 括弧 (`\p`, `\pb`, etc.)
@@ -97,35 +99,120 @@ document (|
 
 >%
 
-+section{AZmath の特徴}<%
-
->%
-
-
-
 +section{数式環境}<%
 
   +p{
-    \SATySFi; は\LaTeX;と異なり、本来「環境 (environment)」と呼ぶべき概念はありません。
-    しかし、ここでは `\alpha` や `\sum` など数式内で用いるコマンドと区別するため、
-    インラインテキストまたはブロックテキストから数式に入るためのコマンドのことを
-    便宜上「数式環境」と呼ぶことにします。
+    \LaTeX; では、 `equation` や amsmath パッケージの `gather`, `align` といった
+    環境 (environment) を用いて別行立て数式を記述します。
+    \SATySFi; は\LaTeX;と異なり、本来「環境」と呼ぶべき概念はありませんが、
+    ここでは `\alpha` や `\sum` など数式内で用いるコマンドと区別するため、
+    インラインテキストまたはブロックテキストから別行立て数式に入るためのコマンド及び、
+    それに類するコマンドのことを便宜上「数式環境」と呼ぶことにします。
   }
 
-    +subsection{数式環境の一覧}<%
+  +p{
+    SATySFi に標準で用意されている `math` パッケージでは、
+    別行立ての数式を実現するために以下のコマンドが用意されています。
+    \listing{
+      * `+math`: 通常の別行立て数式
+      * `+math-list`: 複数の数式を別行立てで横に並べる（長くなると改行）
+      * `+align`: 複数の数式を揃えながら並べる
+        (\LaTeX; の `align` 環境と `alignat` 環境を兼ねたようなコマンド)
+      * `\eqn`: `+eqn` のインライン版
+      * `\math-list`: `+math-list` のインライン版
+      * `\align`: `+align` のインライン版
+    }
+
+    それに対し、AZmath パッケージでは以下のコマンドが定義されています。
+
+    \listing{
+      * `+eqn`: 通常の別行立て数式
+      * `+gather`: 複数の数式を縦に並べる。 \LaTeX; の `gather` 環境に近い。
+      * `+align`: 複数の数式を、所定の位置で揃えて縦に並べる。 \LaTeX; の `align` 環境に近い。
+      * `+alignat`: 複数の数式を、所定の位置で揃えて縦縦に並べる。 \LaTeX; の `alignat` 環境に近い。
+      * `\eqn`: `+eqn` のインライン版
+      * `\gather`: `+gather` のインライン版
+      * `\align`: `+align` のインライン版
+      * `\alignat`: `+alignat` のインライン版
+      * `\aligned`: `+align` と似たような揃え方を数式の中で行う。 \LaTeX; の `aligned` 環境に近い。
+      * `\cases`: 数式の中で場合分けを作る。\LaTeX; の `cases` 環境に近い。
+    }
+
+    \LaTeX; に馴染みのある人に馴染みやすいよう、命名規則は \LaTeX; のものを踏襲しています。
+  }
+
+  +p{
+    AZmath パッケージでは、標準の `math` パッケージと比較して以下のような機能が追加されています。
+    \listing{
+      * 自動連番のタグを付与することができる。
+
+      * タグにラベルを付与し、 `\ref` コマンドなどを用いて参照することが出来る。
+
+      * 複数行からなる別行立て数式（`+gather`, `+align` など）の1行1行にタグを付けることができる。
+        タグ付けを手動で抑制することも出来る。
+
+      * 複数行からなる別行立て数式の途中で改ページを行うことができる。改ページを抑制することもできる。
+
+      * 数式環境前後の余白や、複数行数式がある場合の数式行同士の余白を変更することができる。
+    }
+    以下、具体的に使い方を説明します。
+  }
+
+  +subsection{数式環境の使い方}<%
 
     +p{
-      `+eqn-gather` コマンドにより，複数の数式を中央揃えで表示することができます．
+      最も単純な別行立て数式用のコマンドは `+eqn` であり、
+      標準パッケージの `+math` コマンドと同様に1行の別行立て数式を組むことができます。
+      ただし、 `+eqn` を用いた場合はデフォルトで連番の数式番号が付与されます。
     }
 
     +example(```
-    +eqn-gather(${
+    +eqn(${
+        x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
+      });
+    ```) <%
+    +eqn(${
+        x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
+      });
+    >%
+
+    +p{
+      数式前後で改段落を行いたくない場合は、
+      インラインテキストの中に `\eqn` を挿入することでも同様の環境を実現することができます。
+    }
+
+    +example(```
+    +p{
+      したがって、2次方程式の解の公式は
+      \eqn(${
+          x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
+        });
+      で与えられる。
+    }
+    ```) <%
+    +p{
+      したがって、2次方程式の解の公式は
+      \eqn(${
+          x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
+        });
+      で与えられる。
+    }
+    >%
+
+    +p{
+      複数の数式を縦に並べたい場合は複数の `+eqn` をそのまま並べてもよいですが、
+      `+gather` コマンドを使えばよりスマートに複数の数式を表示することができます．
+      `+gather` コマンドでは、単一の数式 (`math`) の代わりに数式のリスト (`math list`) を指定します。
+    }
+
+    +example(```
+    +gather(${
       | \p{x + y}^2 = x^2 + 2xy + y^2,
       | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab,
       | \p{x + y}\p{x - y} = x^2 - y^2.
       |});
     ```) <%
-    +eqn-gather(${
+    +gather(${
       | \p{x + y}^2 = x^2 + 2xy + y^2,
       | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab,
       | \p{x + y}\p{x - y} = x^2 - y^2.
@@ -133,8 +220,131 @@ document (|
     >%
 
     +p{
-      ご覧のように、 `+eqn-gather` を用いて並べた式にはデフォルトで数式番号が付きます。
+      上の例にあるように、
+      `+gather` を用いて並べた式にもデフォルトで連番の数式番号が付与されます。
+      また、 `+eqn` と同様にインラインテキスト版の `\eqn` も用意されています。
     }
+
+    +p{
+      なお、デフォルトでは `+gather` 環境は「全体は中央揃えだが、式は左揃え」となっています。
+      後述するパラメータの値を変更することにより、全ての式を中央揃えにすることもできます。
+      以下の例と上の例を見比べてみてください。
+    }
+
+
+    +example(```
+    +with-param(AZMathEquation.eqn-gather-align-coef)(0.5)<
+      +gather(${
+        | \p{x + y}^2 = x^2 + 2xy + y^2,
+        | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab,
+        | \p{x + y}\p{x - y} = x^2 - y^2.
+        |});
+      >
+    ```) <%
+     +with-param(AZMathEquation.eqn-gather-align-coef)(0.5)<%
+      +gather(${
+        | \p{x + y}^2 = x^2 + 2xy + y^2,
+        | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab,
+        | \p{x + y}\p{x - y} = x^2 - y^2.
+        |});
+      >%
+    >%
+
+
+    +p{
+      長い式を途中で折り返すときや式変形の経過を見せたいときなど、
+      式を特定の箇所で揃えたい場合があります。
+      そのような用途には `+align` を用いることができます。
+    }
+
+    +example(```
+    +align(${
+      | \p{x + y}\p{x - y} |= x^2 -xy + xy - y^2 \notag
+      |                    |= x^2 - y^2.
+      |});
+    ```) <%
+    +align(${
+      | \p{x + y}\p{x - y} |= x^2 -xy + xy - y^2 \notag
+      |                    |= x^2 - y^2.
+      |});
+    >%
+
+    +p{
+      なお、`\notag` はその行における数式番号の付与を抑制するコマンドです
+      （タグの仕様についての詳細は後述します）。
+      先程の `gather` と異なり、イコールの記号 `=` の前にバー `|` が付いています。
+      数式はこのバーの位置を基準として、左にあるものは右揃えで、右にあるものは左揃えで整列されます。
+      上の例ではコードの見栄えのために縦棒の位置を揃えて書きましたが、
+      コード上の縦棒の位置を揃える必要はもちろんありません。
+      なお、この縦棒はいずれも数式の区切りを意味するものであり、
+      以下のように数式のリストを渡した場合と同じ動作となります。
+    }
+
+    +code(```
+    +align[
+      ${ \p{x + y}\p{x - y} };
+      ${= x^2 -xy + xy - y^2 \notag};
+      ${};
+      ${= x^2 - y^2.};
+    ];
+    ```);
+
+    +p{
+      つまり、
+      `+align` コマンドも結局は `+gather` と同様に数式のリストを与えているにすぎないのですが、
+      `+align` コマンドでは2つのペアごとに数式を並べる点が異なっており、
+      結果としてイコールの前などの位置で数式を揃えることができるようになっています。
+    }
+
+    +p{
+      `+alignat` は複数の数式を縦横に並べるためのコマンドです。
+      並べる数式の列数と、数式のリストを指定します。
+    }
+
+    +example(```
+    +alignat(2)(${
+      | \p{x + y}^2        |= x^2 + 2xy + y^2,
+      | \p{x - y}^2        |= x^2 - 2xy + y^2,
+      | \p{x + a}\p{x + b} |= x^2 + \p{a + b} x + ab,
+      | \p{x + y}\p{x - y} |= x^2 - y^2.
+      |});
+    +alignat(3)(${
+      | a |= x, | b =| y,  | c      |= z,
+      | d |= w, | e  |= s, | f = t. |
+      |});
+    ```) <%
+    +alignat(2)(${
+      | \p{x + y}^2        |= x^2 + 2xy + y^2,
+      | \p{x - y}^2        |= x^2 - 2xy + y^2,
+      | \p{x + a}\p{x + b} |= x^2 + \p{a + b} x + ab,
+      | \p{x + y}\p{x - y} |= x^2 - y^2.
+      |});
+    +alignat(3)(${
+      | a |= x, | b =| y,  | c      |= z,
+      | d |= w, | e  |= s, | f = t. |
+      |});
+    >%
+
+    +p{
+      `\aligned` は、数式の中で `\align` のような揃え方を実現したい場合に用いられます。
+      特に場合分けを行う際には `\cases` が便利です。
+    }
+
+    +example(```
+      +eqn(${
+        y = \cases{
+        | x      | \p{x \geq 0}
+        | \neg x | \p{x < 0}
+        |}
+        });
+    ```) <%
+      +eqn(${
+        y = \cases{
+        | x      | \p{x \geq 0}
+        | \neg x | \p{x < 0}
+        |}
+        });
+    >%
 
   >%
 
@@ -145,13 +355,13 @@ document (|
     }
 
     +example(```
-    +eqn-gather(${
+    +gather(${
       | \p{x + y}^2 = x^2 + 2xy + y^2, \label!(`formula1`)
       | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab, \label!(`formula2`)
       | \p{x + y}\p{x - y} = x^2 - y^2. \label!(`formula3`)
       |});
     ```) <%
-    +eqn-gather(${
+    +gather(${
       | \p{x + y}^2 = x^2 + 2xy + y^2,               \label!(`formula1`)
       | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab, \label!(`formula2`)
       | \p{x + y}\p{x - y} = x^2 - y^2.              \label!(`formula3`)
@@ -168,13 +378,13 @@ document (|
     }
 
     +example(```
-    +eqn-gather(${
+    +gather(${
       | \p{x + y}^2 = x^2 + 2xy + y^2,  \label?:!(`1-a`)!(`formula4`)
       | \p{x + y}\p{x - y} = x^2 - y^2.
         \label?:!(`very long tag`)!(`formula5`)
       |});
     ```) <%
-    +eqn-gather(${
+    +gather(${
       | \p{x + y}^2 = x^2 + 2xy + y^2,  \label?:!(`1-a`)!(`formula4`)
       | \p{x + y}\p{x - y} = x^2 - y^2.
         \label?:!(`very long tag`)!(`formula5`)
@@ -190,13 +400,13 @@ document (|
     }
 
     +example(```
-    +eqn-gather(${
+    +gather(${
       | \p{x + y}^2 = x^2 + 2xy + y^2, \notag
       | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab,
       | \p{x + y}\p{x - y} = x^2 - y^2.
       |});
     ```) <%
-    +eqn-gather(${
+    +gather(${
       | \p{x + y}^2 = x^2 + 2xy + y^2, \notag
       | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab,
       | \p{x + y}\p{x - y} = x^2 - y^2.
@@ -211,13 +421,13 @@ document (|
     }
 
     +example(```
-    +eqn-gather?:(AZMathEquation.notag)(${
+    +gather?:(AZMathEquation.notag)(${
       | \p{x + y}^2 = x^2 + 2xy + y^2,
       | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab,
       | \p{x + y}\p{x - y} = x^2 - y^2. \label!(`formula-notag`)
       |});
     ```) <%
-    +eqn-gather?:(AZMathEquation.notag)(${
+    +gather?:(AZMathEquation.notag)(${
       | \p{x + y}^2 = x^2 + 2xy + y^2,
       | \p{x + a}\p{x + b} = x^2 + \p{a + b} x + ab,
       | \p{x + y}\p{x - y} = x^2 - y^2. \label!(`formula-notag`)
@@ -232,12 +442,11 @@ document (|
 
     +p{
       数式が長いことによって通常の位置にタグを打つと数式とタグが重なってしまう場合、
-      タグの位置を自動で下にずらしてくれるのは
-      AZmath パッケージの数式環境の強みです。
+      タグの位置を自動で下にずらしてくれるのは AZmath パッケージの数式環境の強みです。
     }
 
     +example(```
-    +eqn-gather(${
+    +gather(${
       | \p{a + b + c + d + e}\p{x + y}
         = ax + ay + bx + by + cx + cy + dx + dy + ex + ey
       | x^3 + y^3 + z^3 - 3xyz =
@@ -245,7 +454,7 @@ document (|
         \label?:!(`long tag`)!(`long-tag-formula`)
       |});
     ```) <%
-    +eqn-gather(${
+    +gather(${
       | \p{a + b + c + d + e}\p{x + y}
         = ax + ay + bx + by + cx + cy + dx + dy + ex + ey
       | x^3 + y^3 + z^3 - 3xyz =
@@ -258,12 +467,17 @@ document (|
 
   +subsection{数式環境途中での改ページ}<%
     +p{
-      デフォルトでは、数式環境の途中で改ページを許す仕様となっていますが、
-      `\keeppage` コマンドを付けることでこれを抑制することもできます。
+      標準パッケージの `+align` では数式環境の途中で改ページを行うことができなかったのに対し、
+      AZmath パッケージの `+gather`, `+align`, `+alignat`
+      ではデフォルトで数式環境の途中で改ページを行うことができます。
+      \LaTeX; の `\allowdisplaybreaks` オプションを付けた場合と同じような挙動と言えます。
+      しかし、改ページを抑制したい場合もあるでしょう。
+      数式の中で `\keeppage` コマンドを付けることで、
+      その数式の直後の位置で改ページすることを抑制できます。
     }
     +p{
-      数式の途中だからタグ付けも改ページもしたくない、という場合には
-      `\notag\keeppage` としてもよいですが、
+      数式の途中だからタグ付けも改ページもしたくない、
+      という場合には `\notag\keeppage` としてもよいですが、
       同じ効果を持つ `\tbc`（To Be Continued の略）というより短いコマンドも用意しています。
     }
   >%
@@ -275,49 +489,54 @@ document (|
       パラメータを指定してその振る舞いを変更することができます。
     }
 
-    +listing{
-      * `allow-display-break`: 別行立て数式の途中で改行することを許すか。
-      * `vmargin-between-eqn`: 数式同士の間の余白。
-      * `vmargin-between-eqn-and-tag`:
-        数式やタグが長いためにタグが数式の下に回り込んだ際に、
-        数式とタグの間に入る縦方向の余白。
+    +description{
+      * `allow-display-break`
+        ** bool 型のパラメータ。デフォルトは `true`。
+        ** 別行立て数式の途中で改行することを許すかどうか。
+           false にすると別行立て数式に入る直前及び、
+           別行立て数式の行の間では改行ができない。
+
+      * `vmargin-between-eqn`
+        ** `context -> length` 型のパラメータ。デフォルトは `(fun ctx -> (get-font-size ctx) *' 0.6)`。
+        ** 数式同士の間の余白。テキスト処理文脈を引数に取る関数の形で指定する。
+           たとえば `(fun ctx -> (get-font-size ctx) *' 1.5)` とすると
+           現在のフォントサイズの 1.5 倍の高さとなり、
+           `(fun _ -> 20pt)` とすると現在のフォントサイズなどによらず20ptとなる。
+
+      * `vmargin-between-eqn`, `vmargin-after-eqn`
+        ** `context -> length` 型のパラメータ。デフォルトはともに `(fun ctx -> (get-font-size ctx) *' 1.0)`。
+        ** 別行立て数式前後の余白（段落間空白）。
+
+      * `min-gap-between-eqn-and-tag`
+        ** `context -> length` 型のパラメータ。デフォルトは `(fun ctx -> 2pt)`。
+        ** 数式やタグがどこまで近づいてよいか。
+           数式を整列させたとき、数式の右端とタグの左端がこのパラメータで示す値以上無かった場合、
+           タグは数式の下に回り込んで組まれる。
+           テキスト処理文脈を引数に取る関数の形で指定する。
+
+      * `vmargin-between-eqn-and-tag`
+        ** `context -> length` 型のパラメータ。デフォルトは `(fun ctx -> (get-font-size ctx) *' 0.3)`。
+        ** 数式やタグが長いためにタグが数式の下に回り込んだ際に、
+           数式とタグの間に入る縦方向の余白。
+           テキスト処理文脈を引数に取る関数の形で指定する。
+
     }
 
     +p{
-      以下のように変更できます。
+      パラメータはプリアンブルで以下のように指定することができます。
+    }
+    +code(```
+      let () = AZMathEquation.allow-display-break
+        |> AZMathParam.set true
+      let () = AZMathEquation.vmargin-between-eqn
+        |> AZMathParam.set (fun _ -> 20pt)
+    ```);
+
+    +p{
+      また、パラメータをブロックテキスト・インラインテキスト中で指定するコマンドも存在します。
     }
 
   >%
-
-  +p{
-    `+eqn-align` コマンドでも複数の数式を表示できますが，
-    `+eqn-gather` とは異なり，ユーザが定めた位置で式を揃えることができます．
-    同値変形などに便利です．
-    こちらも全ての行に式番号がつくようになっています．
-  }
-
-  +eqn-align(${
-    | 2x + 3 |= x + 1 \tbc
-    | 2x - x |= 1 - 3 \tbc
-    | x      |= -2
-    |});
-
-  +p{
-    その他， `+eqn-alignat` や `\eqn-aligned` (math command) といったコマンドもあります．
-    `\eqn-cases` を用いて場合分けを行うこともできます．
-  }
-
-  +eqn(${
-    y = \eqn-cases{
-    | x      | \p{x \geq 0}
-    | \neg x | \p{x < 0}
-    |}
-    });
-
-  +eqn-alignat(3)(${
-    | x|= 1 | y |= 2 | z|= 1
-    | x|= 1 | y |= 2 | z|= 3
-    |});
 
 >%
 
@@ -327,7 +546,7 @@ document (|
     数式にアクセントを追加することができます．
   }
 
-  +eqn-gather(${
+  +gather(${
     | \hat{a}, \hat{b}, \hat{c}, \hat{d}, \hat{e}, \hat{f},
       \hat{g}, \hat{h}, \hat{i}, \hat{j}, \hat{k}, \hat{l}, \hat{m},
       \hat{n}, \hat{o}, \hat{p}, \hat{q}, \hat{r}, \hat{s},
@@ -350,7 +569,7 @@ document (|
     他のアクセントについても同様に付けることができます．
   }
 
-  +eqn-gather(${
+  +gather(${
     | \tilde{a}, \tilde{b}, \tilde{c}, \tilde{d}, \tilde{e}, \tilde{f},
       \tilde{g}, \tilde{h}, \tilde{i}, \tilde{j}, \tilde{k}, \tilde{l}, \tilde{m},
       \tilde{n}, \tilde{o}, \tilde{p}, \tilde{q}, \tilde{r}, \tilde{s},
@@ -376,7 +595,7 @@ document (|
     場当たり的な解決策として，オプション引数に補正係数を指定して
     `\hat?:!(0.18){f}` などとすれば補正することができます．
   }
-  +eqn-gather(${
+  +gather(${
     | \hat{f}, \hat?:!(0.18){f},
     | \hat{J}, \hat?:!(0.20){J},
     | \hat{m}, \hat?:!(0.-.0.15){m}.
@@ -402,12 +621,12 @@ document (|
     フォントに入っている括弧は用いていません．
   }
 
-  +eqn-gather(${
+  +gather(${
     | \lim_{x \to 0}\paren{\frac{1}{2} \paren{\paren{\paren{x + 1} + x}^2}}^2
     | \lim_{x \to 0}\p{\frac{1}{2} \p{\p{\p{x + 1} + x}^2}}^2
     |});
 
-  +eqn-gather(${
+  +gather(${
     | \p{\int_0^\infty \frac{\sin x}{\sqrt{x}} \ordd x}^2
       = \sum_{k=0}^\infty \frac{\p{2k}\!}{2^{2k}\p{k\!}^2} \frac{1}{2k + 1}
       = \prod_{k=1}^\infty \frac{4k^2}{4k^2 - 1} = \frac{\pi}{2}
@@ -428,12 +647,12 @@ document (|
     2番目については，以下のような例を見るとよりはっきりと違いが分かるでしょう．
   }
 
-  +eqn-gather(${
+  +gather(${
     | \paren{\paren{\paren{\paren{\paren{\paren{\paren{x}}}}}}}
     | \p{\p{\p{\p{\p{\p{\p{x}}}}}}}
     |});
 
-  +eqn-gather(${
+  +gather(${
     | \sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{\sqbracket{x}}}}}}}
     | \pB{\pB{\pB{\pB{\pB{\pB{\pB{x}}}}}}}
     |});
@@ -442,7 +661,7 @@ document (|
     括弧の種類はいくつか用意されています．
   }
 
-  +eqn-gather(${
+  +gather(${
     | \lim_{x \to 0}\pb{\frac{1}{2} \pb{\pb{\pb{x + 1} + x}^2}}
     | \lim_{x \to 0}\pB{\frac{1}{2} \pB{\pB{\pB{x + 1} + x}^2}}
     | \lim_{x \to 0}\pabs{\frac{1}{2} \pabs{\pabs{\pabs{x + 1} + x}^2}}
@@ -456,7 +675,7 @@ document (|
     あたかも中身が20ptの高さを持っているかのように括弧を組むことができます．
   }
 
-  +eqn-gather(${
+  +gather(${
     | \p?:!(10pt){xxx} = \p?:!(15pt){xxx} = \p?:!(30pt){xxx}
     | \p{xxx} = \p-big{xxx} = \p-Big{xxx} = \p-bigg{xxx} = \p-Bigg{xxx}
     | \lim_{x \to 0}\pangle?:!(12pt){\frac{1}{2} \pangle?:!(8pt){\pangle?:!(16pt){\pangle?:!(12pt){x + 1} + x}^2}}
@@ -467,7 +686,7 @@ document (|
     数式の一部に注釈を入れたいときなどに使えます．
   }
 
-  +eqn-gather(
+  +gather(
     let m = ${\frac{\neg b \pm \sqrt{b^2 - 4ac}}{2a}} in
     ${
       | x = \overbrace{#m} + \overbrace{\pb{#m} + #m}^{\text!{ここ大事！}}
@@ -478,7 +697,7 @@ document (|
     片方が片方に内包される形であれば，入れ子にして使うことも可能です．
   }
 
-  +eqn-gather(${
+  +gather(${
     | x = \underbrace{
         \overbrace{ a + \underbrace{b + c}_{=0} }^{\text!{foo}}
         + d + \overbrace{e + f}
@@ -493,7 +712,7 @@ document (|
     行列を描くことも出来ます．
   }
 
-  +eqn-gather(${
+  +gather(${
     | A = \pmatrix!(2){| a | b | c | d |}
     | A^{-1} = \frac{1}{ad - bc} \pmatrix!(2){| d | \neg b | \neg c | a |}
       = \pmatrix!(2){
@@ -506,7 +725,7 @@ document (|
     行列の括弧は色々変えられます．
   }
 
-  +eqn-align(${
+  +align(${
     | A |= \matrix!(2){| a | b | c | d |}
     | A |= \bmatrix!(2){| a | b | c | d |}
     | A |= \vmatrix!(2){| a | b | c | d |}
@@ -515,7 +734,7 @@ document (|
 
 
   % 別行立て数式の途中で改ページ可能
-  +eqn-gather(
+  +gather(
     let-math \term n = ${\frac{x^{#n}}{#n\!}} in
     ${
     | e^x = 1 + \term{1} + \term{2} + \term{3} + \term{4} + \term{5} + \cdots
@@ -530,7 +749,7 @@ document (|
 
   +p{皆はどの式が好き？僕は (\ref(`eq:eqn-cos`);) と (\ref(`eq:eqn-sin`);)が好き！}
 
-  +eqn-align(
+  +align(
     let-math \term n = ${\frac{x^{#n}}{#n\!}} in
     ${
     % \notag: タグを付けない、 \keeppage: 式の直後の位置で改ページしない
@@ -540,7 +759,5 @@ document (|
 
 
 >%
-
-
 
 >%
