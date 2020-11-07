@@ -306,12 +306,17 @@ document (|
     `\eqn-cases` を用いて場合分けを行うこともできます．
   }
 
-  +math(${
+  +eqn(${
     y = \eqn-cases{
     | x      | \p{x \geq 0}
     | \neg x | \p{x < 0}
     |}
     });
+
+  +eqn-alignat(3)(${
+    | x|= 1 | y |= 2 | z|= 1
+    | x|= 1 | y |= 2 | z|= 3
+    |});
 
 >%
 

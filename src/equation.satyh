@@ -44,6 +44,8 @@ module AZMathEquation : sig
   val ctr : Counter.t
 
 % 数式環境
+  % 1つの式を別行立てで表示する。
+  direct +eqn : [labelfmt?;math;] block-cmd
   % 複数の式を中央揃えにする。
   direct +eqn-gather : [labelfmt?;math list;] block-cmd
   direct \eqn-gather : [labelfmt?;math list;] inline-cmd
@@ -51,8 +53,8 @@ module AZMathEquation : sig
   direct +eqn-align  : [labelfmt?; math list;] block-cmd
   direct \eqn-align  : [labelfmt?; math list;] inline-cmd
   % 横並びになった複数の式を揃える。
-  direct +eqn-alignat : [int; math list;] block-cmd
-  direct \eqn-alignat : [int; math list;] inline-cmd
+  direct +eqn-alignat : [labelfmt?; int; math list;] block-cmd
+  direct \eqn-alignat : [labelfmt?; int; math list;] inline-cmd
 
 % 数式の埋め込み
   % 数式内部で \eqn-align
@@ -182,18 +184,24 @@ end = struct
 
   % [[m11; m12]; [m21; m22]; ...] を
   % [([ib11; ib12], meta1); ([1b21; ib22], meta2); ...] にする
-  let embed-math-and-get-meta ctx m-lst =
-    let f m _ m-rightopt =
+  % skip: 数式の右辺と、その次の数式の左辺の間に最低限開ける余白長
+  let embed-math-and-get-meta ctx skip m-lst =
+    let f idx m _ m-rightopt =
       % 右隣があるかどうか
       match m-rightopt with
         | None -> embed-math ctx m
         | Some(m-right) ->
-            let ib-space = space-between-maths ctx m m-right in
-            match ib-space with
-              | None -> embed-math ctx m
-              | Some(ib-space) -> (embed-math ctx m) ++ ib-space
+            if idx mod 2 == 1 then
+              % 数式の右辺に相当するとき
+              (embed-math ctx m) ++ (inline-skip skip)
+            else
+              % 数式の左辺
+              let ib-space = space-between-maths ctx m m-right in
+              match ib-space with
+                | None -> embed-math ctx m
+                | Some(ib-space) -> (embed-math ctx m) ++ ib-space
     in
-    let ib-lst = m-lst |> List.map-adjacent f in
+    let ib-lst = m-lst |> List.mapi-adjacent f in
 
     % meta 情報取得
     let eqn-meta = param-label-meta |> AZMathParam.get in
@@ -201,7 +209,7 @@ end = struct
     (ib-lst, eqn-meta)
 
   % 各列の幅の最大値を計算
-  let calc-lst-max-wid ib-llst =
+  let calc-lst-max-wid ncol ib-llst =
     % 2ベクトルを成分ごとに比較し、大きい方を成分とするベクトルを返す
     let-rec vec-max v1 v2 =
       match (v1, v2) with
@@ -210,7 +218,7 @@ end = struct
       | _ -> []
     in
     ib-llst |> List.map (fun ib-lst -> ib-lst |> List.map get-natural-width)  % length に変換
-            |> List.fold-left vec-max [0pt; 0pt]  % align なので2つ
+            |> List.fold-left vec-max (0pt |> List.repeat ncol)
 
   % inline-boxes の前後に特定の比率で余白を付け加え、目標の幅にしてくれる。
   let add-spaces-with-ratio- ratio wid ib =
@@ -336,11 +344,11 @@ end = struct
     % [m1; m2; m3; m4; ...] を [[m1]; [m2]; [m3]; [m4]; ...] にする
     let math-llst = mlst |> group-by- 1 in
     % (inline-boxes list * meta) list を得る
-    let ib-meta-lst = math-llst |> List.map (embed-math-and-get-meta ctx) in
+    let ib-meta-lst = math-llst |> List.map (embed-math-and-get-meta ctx 0pt) in
     % 各列の幅の最大値
     let lst-max-wid =
       ib-meta-lst |> List.map (Pair.fst) % (inline-boxes list) list を得る
-                  |> calc-lst-max-wid
+                  |> calc-lst-max-wid 1
     in
 
     let bb-lst = ib-meta-lst
@@ -348,10 +356,18 @@ end = struct
     bb-lst |> List.fold-left (+++) block-nil
 
   let-inline ctx \eqn-gather ?:labelfmt mlst =
+    % labelfmt の unwrap
     let labelfmt = labelfmt |> Option.from default-labelfmt in
     inline-fil ++
       embed-block-breakable ctx (read-block ctx '<+eqn-gather?:(labelfmt)(mlst);>)
         ++ omit-skip-after
+
+  let-block ctx +eqn ?:labelfmt m =
+    % labelfmt の unwrap
+    let labelfmt = labelfmt |> Option.from default-labelfmt in
+  read-block ctx '<
+    +eqn-gather?:(labelfmt)[m];
+  >
 
 % +eqn-align
 
@@ -362,11 +378,11 @@ end = struct
     % [m1; m2; m3; m4; ...] を [[m1; m2]; [m3; m4]; ...] にする
     let math-llst = mlst |> group-by- 2 in
     % (inline-boxes list * meta) list を得る
-    let ib-meta-lst = math-llst |> List.map (embed-math-and-get-meta ctx) in
+    let ib-meta-lst = math-llst |> List.map (embed-math-and-get-meta ctx 0pt) in
     % 各列の幅の最大値
     let lst-max-wid =
       ib-meta-lst |> List.map (Pair.fst) % (inline-boxes list) list を得る
-                  |> calc-lst-max-wid
+                  |> calc-lst-max-wid 2
     in
 
     let bb-lst = ib-meta-lst
@@ -374,12 +390,43 @@ end = struct
     bb-lst |> List.fold-left (+++) block-nil
 
   let-inline ctx \eqn-align ?:labelfmt mlst =
+    % labelfmt の unwrap
     let labelfmt = labelfmt |> Option.from default-labelfmt in
     inline-fil ++
       embed-block-breakable ctx (read-block ctx '<+eqn-align?:(labelfmt)(mlst);>)
         ++ omit-skip-after
 
 % +eqn-alignat
+
+  let-block ctx +eqn-alignat ?:labelfmt ncol mlst =
+    % labelfmt の unwrap
+    let labelfmt = labelfmt |> Option.from notag in
+
+    let align-coefs = [1.0; 0.0] |> List.cycle- ncol in
+
+    % [m1; m2; m3; m4; ...] を [[m1; m2]; [m3; m4]; ...] にする
+    let math-llst = mlst |> group-by- (ncol * 2) in
+    % (inline-boxes list * meta) list を得る
+    let space-bwn-eqn = (get-font-size ctx) *' 2. in
+    let ib-meta-lst = math-llst |> List.map (embed-math-and-get-meta ctx space-bwn-eqn) in
+    % 各列の幅の最大値
+    let lst-max-wid =
+      ib-meta-lst |> List.map (Pair.fst) % (inline-boxes list) list を得る
+                  |> calc-lst-max-wid (ncol * 2)
+    in
+
+    let bb-lst = ib-meta-lst
+      |> List.map (align-eqn ctx labelfmt align-coefs lst-max-wid) |> List.concat in
+    bb-lst |> List.fold-left (+++) block-nil
+
+  let-inline ctx \eqn-alignat ?:labelfmt ncol mlst =
+    % labelfmt の unwrap
+    let labelfmt = labelfmt |> Option.from notag in
+    inline-fil ++
+      embed-block-breakable ctx (read-block ctx '<+eqn-alignat?:(labelfmt)(ncol)(mlst);>)
+        ++ omit-skip-after
+
+% \eqn-aligned
 
   let math-to-aligned-ib ctx idx m mprevopt mnextopt =
     let lengap = get-font-size ctx *' 2. in
@@ -402,31 +449,6 @@ end = struct
       match mnextopt with
       | None    -> ib ++ inline-fil
       | Some(_) -> ib ++ inline-fil ++ inline-skip lengap
-
-  let-block ctx +eqn-alignat ncol mlst =
-
-    let vlen = 4pt in
-
-    let math-matrix = AZTypeMatrix.from-list (ncol * 2) ${} mlst in
-    let ib-matrix = AZTypeMatrix.map-rowidx-adjacent (math-to-aligned-ib ctx) math-matrix in
-
-    let cell-matrix =
-      AZTypeMatrix.map (fun ib -> NormalCell((0pt, 0pt, vlen, vlen), ib)) ib-matrix
-    in
-
-    let rulef _ _ = [] in
-    let ib-tabular = tabular (AZTypeMatrix.to-llist cell-matrix) rulef in
-
-    let margin = get-font-size ctx *' 1.0 in
-    let ctx-eqn = ctx |> set-paragraph-margin margin margin in
-    line-break true true ctx-eqn (inline-fil ++ ib-tabular ++ inline-fil)
-
-  let-inline ctx \eqn-alignat ncol mlst =
-    inline-fil ++
-      embed-block-breakable ctx (read-block ctx '<+eqn-alignat(ncol)(mlst);>)
-        ++ omit-skip-after
-
-% \eqn-aligned
 
   let-math \eqn-aligned mlst =
     let embedf ctx =
