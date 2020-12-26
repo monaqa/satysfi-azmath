@@ -2,8 +2,11 @@
 %
 % hat や dot などのアクセント記号を定義するパッケージ．
 
+@require: gr
 @require: option
 @import: util
+
+type wide-accent = context -> ((length * length * length * length) * deco)
 
 module AZMathAccent : sig
 
@@ -14,6 +17,11 @@ module AZMathAccent : sig
   direct \ddot   : [float?; math;] math-cmd
   direct \breve  : [float?; math;] math-cmd
   % direct \hat-a : [] math-cmd
+
+  % direct \wide-accent : [wide-accent; math] inline-cmd
+  direct \widehat : [float?; math;] math-cmd
+  direct \overline: [math;] math-cmd
+  direct \overrightarrow: [math;] math-cmd
 
 end = struct
 
@@ -82,6 +90,88 @@ end = struct
   %     accent ` ̂` str-inner
   %   in
   %   math-in-math MathOrd embedf
+
+  let wide-accent-scheme framef m =
+    let embedf ctx =
+      framef (embed-math ctx m)
+    in
+    text-in-math MathOrd embedf
+
+  let-math \overline m =
+    let embedf ctx =
+      let fsize = get-font-size ctx in
+      let margin = fsize *' 0.125 in
+
+      let deco (x, y) wid ht dp =
+        let text-color = get-text-color ctx in
+        let ht-base = y +' ht +' margin in
+        let path = Gr.line (0pt, 0pt) (wid, 0pt) in
+        [stroke 0.5pt text-color (path |> shift-path (x, y +' ht))]
+      in
+      inline-frame-outer (0pt, 0pt, margin, 0pt) deco (embed-math ctx m)
+    in
+    text-in-math MathOrd embedf
+
+  let-math \widehat ?:ht-ratio m =
+    let ht-ratio = ht-ratio |> Option.from 0.2 in
+
+    let embedf ctx =
+      let fsize = get-font-size ctx in
+      let ib = embed-math ctx m in
+      let hat-height = (get-natural-width ib) *' ht-ratio in
+      let margin = fsize *' 0.1 in
+
+      let deco (x, y) wid ht dp =
+        let text-color = get-text-color ctx in
+        let ht-base = y +' ht -' hat-height in
+        let path =
+          let hat-thickness-mid = 0.6pt in
+          let hat-thickness-end = 0.2pt in
+          let half-wid = wid *' .5 in
+          start-path (0pt, 0pt)
+            |> line-to (0pt, hat-thickness-end)
+            |> line-to (half-wid, hat-height +' hat-thickness-mid)
+            |> line-to (wid, hat-thickness-end)
+            |> line-to (wid, 0pt)
+            |> line-to (half-wid, hat-height)
+            |> close-with-line
+        in
+        [fill text-color (path |> shift-path (x, ht-base))]
+      in
+      inline-frame-outer (0pt, 0pt, margin +' hat-height, 0pt) deco (embed-math ctx m)
+    in
+    text-in-math MathOrd embedf
+
+  let-math \overrightarrow m =
+
+    let embedf ctx =
+      let fsize = get-font-size ctx in
+      let margin = fsize *' 0.25 in
+      let wid-arrowhead = 3pt in
+
+      let deco (x, y) wid ht dp =
+        let text-color = get-text-color ctx in
+        let ht-base = y +' ht -' wid-arrowhead in
+
+        let x-start = 0pt in
+        let x-end = wid -' 1pt in
+
+        let path-line = Gr.line (x-start, 0pt) (x-end, 0pt) in
+
+        let path-arrowhead =
+          start-path (x-end -' 2.5pt, wid-arrowhead)
+            |> bezier-to (x-end -' 2.0pt, 1.5pt) (x-end -' 1.5pt, 0.5pt) (x-end, 0pt)
+            |> bezier-to (x-end -' 1.5pt, -0.5pt) (x-end -' 2.0pt, -1.5pt) (x-end -' 2.5pt, (0pt -' wid-arrowhead))
+            |> terminate-path
+        in
+        [
+          stroke 0.5pt text-color (path-line |> shift-path (x, ht-base));
+          stroke 0.5pt text-color (path-arrowhead |> shift-path (x, ht-base));
+        ]
+      in
+      inline-frame-outer (0pt, 0pt, margin +' wid-arrowhead, 0pt) deco (embed-math ctx m)
+    in
+    text-in-math MathOrd embedf
 
 
 end

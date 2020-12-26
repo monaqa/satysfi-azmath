@@ -822,6 +822,16 @@ document (|
       |});
   >%
 
+  +gather(
+    ${
+      | \overline{abc} = \overline{ab} + \overline{ac} - \overline{bc}
+      | \widehat{abc} = \widehat{ab} + \widehat{ac} - \widehat{bc}
+      | \overrightarrow{abc} = \overrightarrow{ab} + \overrightarrow{ac} - \overrightarrow{bc}
+      | \frac{\overline{AB}}{\overline{AC}}
+      % | \overrightarrow{AC} + \overline{AC} + \widehat{AC}
+      % | \widehat?:!(0.15){abc} = \widehat?:!(0.05){ab} + \widehat?:!(0.4){ac} - \widehat{bc}
+      |});
+
 >%
 
 >%
