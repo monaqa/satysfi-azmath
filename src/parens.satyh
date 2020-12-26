@@ -36,6 +36,17 @@ module AZMathParens : sig
 
   val paren-scheme : graphicf-paren -> half-height-paren -> paren
 
+  val paren-pair : paren -> paren -> math list -> (math * math)
+  val p-pair     : math list -> (math * math)
+  val pb-pair    : math list -> (math * math)
+  val pB-pair    : math list -> (math * math)
+
+  % constructive math expression: 数式の構成要素のリストを作成し、それを配置していく。
+  val surround-paren : paren -> paren -> math list -> math list
+  val surround-p     : math list -> math list
+  val surround-pb    : math list -> math list
+  val surround-pB    : math list -> math list
+
   val gr-round-bracket  : bool -> graphicf-paren
   val gr-curly-bracket  : bool -> graphicf-paren
   val gr-square-bracket : length -> bool -> graphicf-paren
@@ -343,7 +354,6 @@ let pads-square-bracket is-open fsize =
         (paren-scheme (gr-square-bracket 0.5pt false) half-height)
           m
 
-
 % abs-bracket
 
   let gr-abs-bracket thk is-open vlen fsize color =
@@ -502,6 +512,37 @@ let pads-square-bracket is-open fsize =
         (paren-scheme (gr-angle-bracket 0.5pt false) half-height)
           m
 
+% paren-pair
+
+  let paren-pair p-open p-close innerlst =
+    let inner = innerlst |> List.fold-left (fun m1 m2 -> ${#m1#m2}) ${} in
+    let embedf1 ctx =
+      let (_, ht, dp) = get-natural-metrics (embed-math ctx inner) in
+      math-paren
+        (fun _ _ -> p-open ht dp)
+          empty-bracket-r
+            ${}
+    in
+    let embedf2 ctx =
+      let (_, ht, dp) = get-natural-metrics (embed-math ctx inner) in
+      math-paren
+        empty-bracket-l
+          (fun _ _ -> p-close ht dp)
+            ${}
+    in
+    (math-in-math MathOpen embedf1, math-in-math MathClose embedf2)
+
+  let p-pair = paren-pair round-bracket-l round-bracket-r
+  let pb-pair = paren-pair curly-bracket-l curly-bracket-r
+  let pB-pair = paren-pair square-bracket-l square-bracket-r
+
+  let surround-paren p-open p-close innerlst =
+    let (p1, p2) = paren-pair p-open p-close innerlst in
+    List.concat [[p1]; innerlst; [p2]]
+
+  let surround-p  = surround-paren round-bracket-l round-bracket-r
+  let surround-pb = surround-paren curly-bracket-l curly-bracket-r
+  let surround-pB = surround-paren square-bracket-l square-bracket-r
 
 % other commands
 
