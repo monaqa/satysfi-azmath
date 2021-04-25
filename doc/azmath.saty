@@ -32,6 +32,7 @@ let document record content = StdJaBook.document record '<%
         |> set-leading (fsize *' 1.4)
         |> set-min-gap-of-lines (fsize *' 0.4)
         |> set-code-text-command (command \code)
+        |> AZMathUnicode.enable-unicode-math
   ))(content);
 >%
 
