@@ -594,6 +594,10 @@ document (|
       \breve{g}, \breve{h}, \breve{i}, \breve{j}, \breve{k}, \breve{l}, \breve{m},
       \breve{n}, \breve{o}, \breve{p}, \breve{q}, \breve{r}, \breve{s},
       \breve{t}, \breve{u}, \breve{v}, \breve{w}, \breve{x}, \breve{y}, \breve{z}.
+    | \vec{a}, \vec{b}, \vec{c}, \vec{d}, \vec{e}, \vec{f},
+      \vec{g}, \vec{h}, \vec{i}, \vec{j}, \vec{k}, \vec{l}, \vec{m},
+      \vec{n}, \vec{o}, \vec{p}, \vec{q}, \vec{r}, \vec{s},
+      \vec{t}, \vec{u}, \vec{v}, \vec{w}, \vec{x}, \vec{y}, \vec{z}.
     |});
 
   +p{
