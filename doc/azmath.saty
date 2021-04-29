@@ -33,7 +33,7 @@ let document record content = StdJaBook.document record '<%
         |> set-leading (fsize *' 1.4)
         |> set-min-gap-of-lines (fsize *' 0.4)
         |> set-code-text-command (command \code)
-        |> AZMathUnicode.enable-unicode-math
+        % |> AZMathUnicode.enable-unicode-math
   ))(content);
 >%
 
@@ -551,6 +551,46 @@ document (|
     }
 
   >%
+
+>%
+
++section{Unicode を用いた数式の記述}<%
+
+  +p{
+    最新版の \SATySFi; （未リリース）では、数式モード内で直接 Unicode 文字を記述できるようになりました。
+    ただし、現時点では `set-math-char` という関数を用いてテキスト処理文脈を変更しない限り、
+    数式文字間のスペーシングが正しくならない場合があります。
+    たとえば除算記号である「`÷`」は多くのケースで二項演算子として用いられる記号ですが、
+    何も設定せず標準の `math` パッケージの `+math` コマンドを用いるだけでは
+    以下のように二項演算子前後のスペースが詰まって表示されます。
+  }
+
+  +example(```
+    +math(${ x ÷ y });  % SATySFi 標準の math パッケージにある数式環境
+  ```)<
+    +math(${ x ÷ y });  % SATySFi 標準の math パッケージにある数式環境
+  >
+
+  +p{
+    AZMath パッケージの数式環境では自動でスペーシングに関する設定を行い、
+    Unicode を用いた数式の記述であっても正しいスペーシングで組まれるよう努力しています。
+  }
+
+  +example(```
+    +eqn(${ x ÷ y });  % azmath パッケージの数式環境
+  ```)<
+    +eqn(${ x ÷ y });  % azmath パッケージの数式環境
+  >
+
+  +p{
+    現時点では全ての記号を網羅できていない可能性があります。
+    意図しないスペーシングで組まれてしまうものを発見された場合は、
+    GitHub での Issue 報告
+    \footnote{
+    \href(`https://github.com/monaqa/satysfi-azmath/issues`){`https://github.com/monaqa/satysfi-azmath/issues`}
+    }
+    にご協力よろしくお願いします。
+  }
 
 >%
 
