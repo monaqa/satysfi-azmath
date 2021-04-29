@@ -5,6 +5,7 @@
 @require: enumitem/enumitem
 @require: math
 @import: ../src/azmath
+@require: base/typeset/base
 
 let-block ctx +ctx ctxf bt = read-block (ctxf ctx) bt
 
@@ -71,6 +72,18 @@ let-math \p-Bigg m =
   let mathf ctx =
     let (_, ht, _) = get-natural-metrics (embed-math ctx ${\int_1^2}) in
     ${\p?:!(ht)!(m)}
+  in
+  math-in-math MathOrd mathf
+
+
+let-math \mel2 n a m =
+  let mathf ctx =
+    let (_, ht, dp) = get-natural-metrics (embed-math ctx n) in
+    let half-height = AZMathParens.parensize-default-fixed ht dp in
+    let lparen = AZMathParens.paren-scheme (AZMathParens.gr-angle-bracket 0.5pt true) half-height in
+    let mparen = AZMathParens.paren-scheme (AZMathParens.gr-abs-bracket-m 0.5pt) half-height in
+    let rparen = AZMathParens.paren-scheme (AZMathParens.gr-angle-bracket 0.5pt false) half-height in
+    math-paren-with-middle lparen rparen mparen [n; a; m]
   in
   math-in-math MathOrd mathf
 
@@ -569,7 +582,7 @@ document (|
   +p{
     他のアクセントについても同様に付けることができます．
     現時点で使用可能なコマンドは
-    `\hat{}`, `\tilde{}`, `\bar{}`, `\adot{}`, `\ddot{}`, `\breve{}`
+    `\hat{}`, `\tilde{}`, `\bar{}`, `\adot{}`, `\ddot{}`, `\breve{}`, `\vec{}`
     です。
   }
 
@@ -632,6 +645,26 @@ document (|
     let-math \hat-J = ${\hat?:!(0.20){J}}
   ```);
 
+  +p{
+    複数文字にまたがる数式の装飾は、上で示したコマンドでは対応できません。
+    代わりに `\overline`, `\widehat`, `\overrightarrow` といったコマンドが用意されています。
+  }
+
+  +example(```
+    +gather(${
+      | \overline{abc} = \overline{ab} + \overline{ac} - \overline{bc}
+      | \widehat{abc} = \widehat{ab} + \widehat{ac} - \widehat{bc}
+      | \overrightarrow{abc} =
+        \overrightarrow{ab} + \overrightarrow{ac} - \overrightarrow{bc}
+      |});
+  ```)<%
+    +gather(${
+      | \overline{abc} = \overline{ab} + \overline{ac} - \overline{bc}
+      | \widehat{abc} = \widehat{ab} + \widehat{ac} - \widehat{bc}
+      | \overrightarrow{abc} =
+        \overrightarrow{ab} + \overrightarrow{ac} - \overrightarrow{bc}
+      |});
+  >%
 
 >%
 
@@ -734,7 +767,39 @@ document (|
   >%
 
   +p{
-    数式を囲む括弧とは少し異なる括弧のコマンドとして、
+    `\genparen` を用いれば、デフォルトでは用意されていないペアの括弧を定義することもできます。
+  }
+
+  +example(```
+    +eqn(
+      open AZMathParens in
+      let-math \bra m =
+        ${ \genparen!(angle-bracket-l)!(abs-bracket-r)!(m) }
+      in
+      let-math \ket m =
+        ${ \genparen!(abs-bracket-l)!(angle-bracket-r)!(m) }
+      in
+      ${ \bra{\phi}, \ket{\psi} }
+  ```)<%
+    +eqn(
+      open AZMathParens in
+      let-math \bra m =
+        ${ \genparen!(angle-bracket-l)!(abs-bracket-r)!(m) }
+      in
+      let-math \ket m =
+        ${ \genparen!(abs-bracket-l)!(angle-bracket-r)!(m) }
+      in
+      ${ \bra{\phi}, \ket{\psi} }
+    );
+  >%
+
+  +p{
+    `AZMathParens.paren-scheme` は SATySFi の `paren` 型を生成するための関数であり、
+    これを用いればさらに自由度の高い括弧を組むことができます。
+  }
+
+  +p{
+    数式を囲む括弧とは多少異なるものの、
     `\overbrace{m}`, `\underbrace{m}` で数式の上下に波括弧を描く事ができます．
     数式の一部に注釈を入れたいときなどに使えます．
   }
@@ -743,15 +808,15 @@ document (|
     +gather(
       let m = ${\frac{\neg b \pm \sqrt{b^2 - 4ac}}{2a}} in
       ${
-        | x = \overbrace{#m} + \overbrace{\pb{#m} + #m}^{\text!{大事！}}
-        | x = \underbrace{#m + \pb{#m}} + \underbrace{#m}_{\text!{大事！}}
+        |x = \overbrace{#m} + \overbrace{\pb{#m} + #m}^{\text!{大事}}
+        |x = \underbrace{#m + \pb{#m}} + \underbrace{#m}_{\text!{大事}}
         |});
   ```)<%
     +gather(
       let m = ${\frac{\neg b \pm \sqrt{b^2 - 4ac}}{2a}} in
       ${
-        |x = \overbrace{#m} + \overbrace{\pb{#m} + #m}^{\text!{大事！}}
-        |x = \underbrace{#m + \pb{#m}} + \underbrace{#m}_{\text!{大事！}}
+        |x = \overbrace{#m} + \overbrace{\pb{#m} + #m}^{\text!{大事}}
+        |x = \underbrace{#m + \pb{#m}} + \underbrace{#m}_{\text!{大事}}
         |});
   >%
 
@@ -785,7 +850,6 @@ document (|
     ${n} 個の列を持つ行列を組むことができます。
     なお、行の数は要素数から自動で判断されます。
   }
-
 
   +example(```
     +gather(${
@@ -826,16 +890,6 @@ document (|
       | A |= \dmatrix!(2){| a | b | c | d |}
       |});
   >%
-
-  +gather(
-    ${
-      | \overline{abc} = \overline{ab} + \overline{ac} - \overline{bc}
-      | \widehat{abc} = \widehat{ab} + \widehat{ac} - \widehat{bc}
-      | \overrightarrow{abc} = \overrightarrow{ab} + \overrightarrow{ac} - \overrightarrow{bc}
-      | \frac{\overline{AB}}{\overline{AC}}
-      % | \overrightarrow{AC} + \overline{AC} + \widehat{AC}
-      % | \widehat?:!(0.15){abc} = \widehat?:!(0.05){ab} + \widehat?:!(0.4){ac} - \widehat{bc}
-      |});
 
 >%
 
