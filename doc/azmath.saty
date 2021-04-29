@@ -143,7 +143,7 @@ document (|
       * `+eqn`: 通常の別行立て数式
       * `+gather`: 複数の数式を縦に並べる。 \LaTeX; の `gather` 環境に近い。
       * `+align`: 複数の数式を、所定の位置で揃えて縦に並べる。 \LaTeX; の `align` 環境に近い。
-      * `+alignat`: 複数の数式を、所定の位置で揃えて縦縦に並べる。 \LaTeX; の `alignat` 環境に近い。
+      * `+alignat`: 複数の数式を、所定の位置で揃えて縦に並べる。 \LaTeX; の `alignat` 環境に近い。
       * `\eqn`: `+eqn` のインライン版
       * `\gather`: `+gather` のインライン版
       * `\align`: `+align` のインライン版
