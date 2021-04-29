@@ -75,18 +75,6 @@ let-math \p-Bigg m =
   in
   math-in-math MathOrd mathf
 
-
-let-math \mel2 n a m =
-  let mathf ctx =
-    let (_, ht, dp) = get-natural-metrics (embed-math ctx n) in
-    let half-height = AZMathParens.parensize-default-fixed ht dp in
-    let lparen = AZMathParens.paren-scheme (AZMathParens.gr-angle-bracket 0.5pt true) half-height in
-    let mparen = AZMathParens.paren-scheme (AZMathParens.gr-abs-bracket-m 0.5pt) half-height in
-    let rparen = AZMathParens.paren-scheme (AZMathParens.gr-angle-bracket 0.5pt false) half-height in
-    math-paren-with-middle lparen rparen mparen [n; a; m]
-  in
-  math-in-math MathOrd mathf
-
 in
 
 document (|

@@ -77,28 +77,6 @@ end = struct
   let-math \breve  ?:shift inner = accent-scheme ` ̆` 0.5 0.28 shift inner
   let-math \vec    ?:shift inner = accent-scheme ` ⃗` 0.5 0.28 shift inner
 
-  % let accent acc str =
-  %   let italic-str =
-  %     let ucodelst = string-explode str in
-  %     match ucodelst with
-  %     | [] -> ` `
-  %     | ucode :: _ -> string-unexplode [ucode - 0x0061 + 0x1D44E]
-  %   in
-  %   math-char MathOrd (italic-str ^ acc)
-  %
-  % let-math \hat it-inner =
-  %   let embedf ctx =
-  %     let str-inner = extract-string (read-inline ctx it-inner) in
-  %     accent ` ̂` str-inner
-  %   in
-  %   math-in-math MathOrd embedf
-
-  let wide-accent-scheme framef m =
-    let embedf ctx =
-      framef (embed-math ctx m)
-    in
-    text-in-math MathOrd embedf
-
   let-math \overline m =
     let embedf ctx =
       let fsize = get-font-size ctx in
