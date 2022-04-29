@@ -8,6 +8,7 @@ A SATySFi package containing A-to-Z mathematical commands (in the future).
 * Accents
 * Matrices
 * Parentheses
+* Unicode math expression
 
 All available commands are listed [here](commands.md).
 

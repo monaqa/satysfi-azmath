@@ -7,12 +7,12 @@
 % 欲しい括弧の高さ，フォントサイズ，括弧の色を指定し，
 % グラフィックス及び括弧のバウンディングボックス，kernの補正関数を返す関数．
 % ただしkernの補正関数は「括弧の中心軸をy座標の0ptとする」関数である．
-type graphicf-paren = length -> length -> color -> (graphics list * point * point * (length -> length))
+type parengrf = length -> length -> color -> (graphics list * point * point * (length -> length))
 
 % どのような大きさの括弧で囲むかを決める関数．
 % 囲む対象の深さ，高さ，軸の高さ，fontsize を与えて，
 % 組みたい括弧の高さの半分の長さを返す．
-type half-height-paren = length -> length -> length -> length -> length
+type parensizef = length -> length -> length -> length -> length
 
 module AZMathParens : sig
 
@@ -34,18 +34,24 @@ module AZMathParens : sig
   val empty-bracket-l  : paren
   val empty-bracket-r  : paren
 
-  val paren-scheme : graphicf-paren -> half-height-paren -> paren
+  val paren-scheme : parengrf -> parensizef -> paren
 
-  val gr-round-bracket  : bool -> graphicf-paren
-  val gr-curly-bracket  : bool -> graphicf-paren
-  val gr-square-bracket : length -> bool -> graphicf-paren
-  val gr-abs-bracket    : length -> bool -> graphicf-paren
-  val gr-norm-bracket   : length -> bool -> graphicf-paren
-  val gr-angle-bracket  : length -> bool -> graphicf-paren
+  val gr-round-bracket  : bool -> parengrf
+  val gr-curly-bracket  : bool -> parengrf
+  val gr-square-bracket : length -> bool -> parengrf
+  val gr-abs-bracket    : length -> bool -> parengrf
+  val gr-abs-bracket-m  : length -> parengrf
+  val gr-norm-bracket   : length -> bool -> parengrf
+  val gr-angle-bracket  : length -> bool -> parengrf
 
-  val half-height-default : half-height-paren
-  val half-height-with-paddings : float -> half-height-paren
-  val half-height-fixed : length -> half-height-paren
+% parensize 関数
+  val parensize-normal                : parensizef
+  val parensize-fixed                 : length -> length -> parensizef
+  val parensize-default               : parensizef
+  val parensize-default-fixed         : length -> length -> parensizef
+  val parensize-default-with-paddings : float -> parensizef
+  val parensize-convert-add-margin    : float -> parensizef -> parensizef
+  val parensize-convert-add-minimum   : parensizef -> parensizef
 
   direct \p      : [length?; math;] math-cmd
   direct \pb     : [length?; math;] math-cmd
@@ -68,17 +74,34 @@ end = struct
 
   let raise-math l = math-transform (raise-inline l) MathOrd
 
-  let half-height-default hgt dpt hgtaxis fontsize =
-    let minhalflen = fontsize *' 0.5 in
-      length-max minhalflen (length-max (hgt -' hgtaxis) (hgtaxis +' dpt))
+  % 最も基本的な parensizef 型の値。
+  % 「与えられた hgt, dpt を持つ数式をちょうど囲めるような括弧の高さ」を返す。
+  let parensize-normal hgt dpt hgtaxis fontsize =
+    length-max (hgt -' hgtaxis) (hgtaxis +' dpt)
 
-  let half-height-with-paddings vpadr hgt dpt hgtaxis fontsize =
-    half-height-default hgt dpt hgtaxis fontsize +' fontsize *' vpadr
+  % 実際の数式の高さや深さに関係なく、一定の高さの括弧を返す。
+  let parensize-fixed hgt-objective dpt-objective  _ _ hgtaxis fontsize =
+    parensize-normal hgt-objective dpt-objective hgtaxis fontsize
 
-  % あたかも中身が hgt-objective の高さを持っているかのように振る舞わせる．
-  let half-height-fixed hgt-objective hgt dpt hgtaxis fontsize =
-      length-max (hgt-objective -' hgtaxis) hgtaxis
+  % parensizef 型を変換し、「元の parensizef が返す値」にマージンを加える。
+  let parensize-convert-add-margin vpadr prf  hgt dpt hgtaxis fontsize =
+    (prf hgt dpt hgtaxis fontsize) +' (fontsize *' vpadr)
 
+  % parensizef 型を変換し、「元の parensizef が返す値」がフォントサイズの半分を下回らないようにする。
+  let parensize-convert-add-minimum prf  hgt dpt hgtaxis fontsize =
+    length-max (fontsize *' 0.5) (prf hgt dpt hgtaxis fontsize)
+
+  % 基本的な parensizef に「括弧の高さがフォントサイズ以上」の保証をつけたもの。
+  let parensize-default = parensize-normal |> parensize-convert-add-minimum
+
+  % 基本的な parensizef に「括弧の高さがフォントサイズ以上」の保証をつけたもの。
+  let parensize-default-with-paddings vpadr =
+    parensize-normal |> parensize-convert-add-minimum
+                     |> parensize-convert-add-margin vpadr
+
+  % 基本的には固定長だが、括弧の高さがフォントサイズ以上となるようにしたもの。
+  let parensize-default-fixed hgt-objective dpt-objective =
+    parensize-fixed hgt-objective dpt-objective |> parensize-convert-add-minimum
 
   % 一般的な括弧を描く．
   let-math \genparen popen pclose inner = math-paren popen pclose inner
@@ -181,12 +204,12 @@ end = struct
       (fun _ -> (minus hmin) *' 0.6)
     )
 
-  let round-bracket-l = paren-scheme (gr-round-bracket true) half-height-default
-  let round-bracket-r = paren-scheme (gr-round-bracket false) half-height-default
+  let round-bracket-l = paren-scheme (gr-round-bracket true) parensize-default
+  let round-bracket-r = paren-scheme (gr-round-bracket false) parensize-default
   let-math \p ?:ht m =
     let half-height = match ht with
-      | Some(ht) -> half-height-fixed ht
-      | None -> half-height-default
+      | Some(ht) -> parensize-fixed ht 0pt
+      | None -> parensize-default
     in
     math-paren
       (paren-scheme (gr-round-bracket true) half-height)
@@ -281,12 +304,12 @@ end = struct
       (fun _ -> (fsize *' 0.15 -' hmin) *' 0.6)
     )
 
-  let curly-bracket-l = paren-scheme (gr-curly-bracket true) half-height-default
-  let curly-bracket-r = paren-scheme (gr-curly-bracket false) half-height-default
+  let curly-bracket-l = paren-scheme (gr-curly-bracket true) parensize-default
+  let curly-bracket-r = paren-scheme (gr-curly-bracket false) parensize-default
   let-math \pb ?:ht m =
     let half-height = match ht with
-      | Some(ht) -> half-height-fixed ht
-      | None -> half-height-default
+      | Some(ht) -> parensize-fixed ht 0pt
+      | None -> parensize-default
     in
     math-paren
       (paren-scheme (gr-curly-bracket true) half-height)
@@ -331,12 +354,12 @@ let pads-square-bracket is-open fsize =
       kern-default
     )
 
-  let square-bracket-l = paren-scheme (gr-square-bracket 0.5pt true) half-height-default
-  let square-bracket-r = paren-scheme (gr-square-bracket 0.5pt false) half-height-default
+  let square-bracket-l = paren-scheme (gr-square-bracket 0.5pt true) parensize-default
+  let square-bracket-r = paren-scheme (gr-square-bracket 0.5pt false) parensize-default
   let-math \pB ?:ht m =
     let half-height = match ht with
-      | Some(ht) -> half-height-fixed ht
-      | None -> half-height-default
+      | Some(ht) -> parensize-fixed ht 0pt
+      | None -> parensize-default
     in
     math-paren
       (paren-scheme (gr-square-bracket 0.5pt true) half-height)
@@ -396,13 +419,13 @@ let pads-square-bracket is-open fsize =
       (fun _ -> 0pt)
     )
 
-  let abs-bracket-l = paren-scheme (gr-abs-bracket 0.5pt true) (half-height-with-paddings 0.08)
-  let abs-bracket-m = paren-scheme (gr-abs-bracket-m 0.5pt) (half-height-with-paddings 0.08)
-  let abs-bracket-r = paren-scheme (gr-abs-bracket 0.5pt false) (half-height-with-paddings 0.08)
+  let abs-bracket-l = paren-scheme (gr-abs-bracket 0.5pt true) (parensize-default-with-paddings 0.08)
+  let abs-bracket-m = paren-scheme (gr-abs-bracket-m 0.5pt) (parensize-default-with-paddings 0.08)
+  let abs-bracket-r = paren-scheme (gr-abs-bracket 0.5pt false) (parensize-default-with-paddings 0.08)
   let-math \pabs ?:ht m =
     let half-height = match ht with
-      | Some(ht) -> half-height-fixed ht
-      | None -> half-height-with-paddings 0.08
+      | Some(ht) -> parensize-fixed ht 0pt
+      | None -> parensize-default-with-paddings 0.08
     in
     math-paren
       (paren-scheme (gr-abs-bracket 0.5pt true) half-height)
@@ -446,12 +469,12 @@ let pads-square-bracket is-open fsize =
       (fun _ -> (minus hmin) *' 0.4)
     )
 
-  let norm-bracket-l = paren-scheme (gr-norm-bracket 0.5pt true) (half-height-with-paddings 0.08)
-  let norm-bracket-r = paren-scheme (gr-norm-bracket 0.5pt false) (half-height-with-paddings 0.08)
+  let norm-bracket-l = paren-scheme (gr-norm-bracket 0.5pt true) (parensize-default-with-paddings 0.08)
+  let norm-bracket-r = paren-scheme (gr-norm-bracket 0.5pt false) (parensize-default-with-paddings 0.08)
   let-math \pnorm ?:ht m =
     let half-height = match ht with
-      | Some(ht) -> half-height-fixed ht
-      | None -> half-height-with-paddings 0.08
+      | Some(ht) -> parensize-fixed ht 0pt
+      | None -> parensize-default-with-paddings 0.08
     in
     math-paren
       (paren-scheme (gr-norm-bracket 0.5pt true) half-height)
@@ -490,12 +513,12 @@ let pads-square-bracket is-open fsize =
       (fun y -> y *' 0.3)  % 0.375 より気持ち控えめに
     )
 
-  let angle-bracket-l = paren-scheme (gr-angle-bracket 0.5pt true) half-height-default
-  let angle-bracket-r = paren-scheme (gr-angle-bracket 0.5pt false) half-height-default
+  let angle-bracket-l = paren-scheme (gr-angle-bracket 0.5pt true) parensize-default
+  let angle-bracket-r = paren-scheme (gr-angle-bracket 0.5pt false) parensize-default
   let-math \pangle ?:ht m =
     let half-height = match ht with
-      | Some(ht) -> half-height-fixed ht
-      | None -> half-height-default
+      | Some(ht) -> parensize-fixed ht 0pt
+      | None -> parensize-default
     in
     math-paren
       (paren-scheme (gr-angle-bracket 0.5pt true) half-height)
@@ -506,9 +529,9 @@ let pads-square-bracket is-open fsize =
 % other commands
 
   let-math \set-builder m m-cond =
-    let lparen = paren-scheme (gr-curly-bracket true) half-height-default in
-    let mparen = paren-scheme (gr-abs-bracket-m 0.5pt) half-height-default in
-    let rparen = paren-scheme (gr-curly-bracket false) half-height-default in
+    let lparen = paren-scheme (gr-curly-bracket true) parensize-default in
+    let mparen = paren-scheme (gr-abs-bracket-m 0.5pt) parensize-default in
+    let rparen = paren-scheme (gr-curly-bracket false) parensize-default in
     math-paren-with-middle lparen rparen mparen [m; m-cond]
 
   let-math \overbrace m =

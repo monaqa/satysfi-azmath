@@ -60,7 +60,13 @@ end = struct
     if n1 < n2 then (aux n1 n2) else (aux n2 n1)
 
   let from-list ncol dft-value lst =
-    let nrow = (List.length lst) / ncol in
+    let (nrow, ncol) =
+      if ncol < 0 then
+        let nrow = -ncol in
+        (nrow, List.length lst / (nrow))
+      else
+        ((List.length lst) / ncol, ncol)
+    in
     let row-range = range 0 (nrow - 1) in
     let col-range = range 0 (ncol - 1) in
     let l-col-each-row row-idx =

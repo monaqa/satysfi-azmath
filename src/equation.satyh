@@ -10,6 +10,7 @@
 @import: common/param
 @import: parens
 @import: matrices
+@import: unicode-math
 
 % 別行立て数式につけるメタ情報。
 type eqnmeta = (|
@@ -369,6 +370,9 @@ end = struct
 % +gather
 
   let-block ctx +gather ?:tagfmt mlst =
+    % unicode を有効にする
+    let ctx = AZMathUnicode.enable-unicode-math ctx in
+
     % tagfmt の unwrap
     let tagfmt = tagfmt |> Option.from default-tagfmt in
     let align-coef = AZMathParam.get eqn-gather-align-coef in
@@ -397,9 +401,9 @@ end = struct
   let-block ctx +eqn ?:tagfmt m =
     % tagfmt の unwrap
     let tagfmt = tagfmt |> Option.from default-tagfmt in
-  read-block ctx '<
-    +gather?:(tagfmt)[m];
-  >
+    read-block ctx '<
+      +gather?:(tagfmt)[m];
+    >
 
   let-inline ctx \eqn ?:tagfmt m =
     % tagfmt の unwrap
@@ -411,6 +415,9 @@ end = struct
 % +align
 
   let-block ctx +align ?:tagfmt mlst =
+    % unicode を有効にする
+    let ctx = AZMathUnicode.enable-unicode-math ctx in
+
     % tagfmt の unwrap
     let tagfmt = tagfmt |> Option.from default-tagfmt in
 
@@ -438,6 +445,9 @@ end = struct
 % +alignat
 
   let-block ctx +alignat ?:tagfmt ncol mlst =
+    % unicode を有効にする
+    let ctx = AZMathUnicode.enable-unicode-math ctx in
+
     % tagfmt の unwrap
     let tagfmt = tagfmt |> Option.from notag in
 

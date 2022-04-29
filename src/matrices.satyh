@@ -55,11 +55,12 @@ end = struct
         let adj-wid = tab-wid -' pad-width *' 2.0 in
         let text-drawer (x, y) =
           % 相対的な原点から見て table の開始点をどこに置くか
-          let rel-origin-x = 0pt -' pad-width in
-          let rel-origin-y = 0pt -' vertical-length *' (0.5) in
-          [draw-text (x +' rel-origin-x, y +' rel-origin-y) ib-tabular]
+          let rel-origin-x = pad-width in
+          let rel-origin-y = vertical-length *' (0.5) in
+          [draw-text (x -' rel-origin-x, y -' rel-origin-y) ib-tabular]
         in
-        inline-graphics adj-wid adj-ht adj-dp text-drawer in
+        inline-graphics adj-wid adj-ht adj-dp text-drawer
+      in
 
       ib-tabular-adjusted
 

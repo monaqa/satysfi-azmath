@@ -4,5 +4,6 @@
 @import: equation
 @import: matrices
 @import: parens
+@import: unicode-math
 
 let () = ()  % dummy

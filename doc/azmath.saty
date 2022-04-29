@@ -5,6 +5,7 @@
 @require: enumitem/enumitem
 @require: math
 @import: ../src/azmath
+@require: base/typeset/base
 
 let-block ctx +ctx ctxf bt = read-block (ctxf ctx) bt
 
@@ -32,6 +33,7 @@ let document record content = StdJaBook.document record '<%
         |> set-leading (fsize *' 1.4)
         |> set-min-gap-of-lines (fsize *' 0.4)
         |> set-code-text-command (command \code)
+        % |> AZMathUnicode.enable-unicode-math
   ))(content);
 >%
 
@@ -83,7 +85,7 @@ in
 document (|
   title = {AZmath パッケージ};
   author = {\@monaqa};
-  date = {2020/10/10};
+  date = {2022/04/29};
   show-title = true;
   show-toc = true;
 |) '<%
@@ -570,6 +572,46 @@ document (|
 
 >%
 
++section{Unicode を用いた数式の記述}<%
+
+  +p{
+    \SATySFi; v0.0.7 では、数式モード内で直接 Unicode 文字を記述できるようになりました。
+    ただし、現時点では `set-math-char` という関数を用いてテキスト処理文脈を変更しない限り、
+    数式文字間のスペーシングが正しくならない場合があります。
+    たとえば除算記号である「`÷`」は多くのケースで二項演算子として用いられる記号ですが、
+    何も設定せず標準の `math` パッケージの `+math` コマンドを用いるだけでは
+    以下のように二項演算子前後のスペースが詰まって表示されます。
+  }
+
+  +example(```
+    +math(${ x ÷ y });  % SATySFi 標準の math パッケージにある数式環境
+  ```)<
+    +math(${ x ÷ y });  % SATySFi 標準の math パッケージにある数式環境
+  >
+
+  +p{
+    AZMath パッケージの数式環境では自動でスペーシングに関する設定を行い、
+    Unicode を用いた数式の記述であっても正しいスペーシングで組まれるよう努力しています。
+  }
+
+  +example(```
+    +eqn(${ x ÷ y });  % azmath パッケージの数式環境
+  ```)<
+    +eqn(${ x ÷ y });  % azmath パッケージの数式環境
+  >
+
+  +p{
+    現時点では全ての記号を網羅できていない可能性があります。
+    意図しないスペーシングで組まれてしまうものを発見された場合は、
+    GitHub での Issue 報告
+    \footnote{
+    \href(`https://github.com/monaqa/satysfi-azmath/issues`){`https://github.com/monaqa/satysfi-azmath/issues`}
+    }
+    にご協力よろしくお願いします。
+  }
+
+>%
+
 +section{アクセント}<%
 
   +p{
@@ -598,7 +640,7 @@ document (|
   +p{
     他のアクセントについても同様に付けることができます．
     現時点で使用可能なコマンドは
-    `\hat{}`, `\tilde{}`, `\bar{}`, `\adot{}`, `\ddot{}`, `\breve{}`
+    `\hat{}`, `\tilde{}`, `\bar{}`, `\adot{}`, `\ddot{}`, `\breve{}`, `\vec{}`
     です。
   }
 
@@ -623,6 +665,10 @@ document (|
       \breve{g}, \breve{h}, \breve{i}, \breve{j}, \breve{k}, \breve{l}, \breve{m},
       \breve{n}, \breve{o}, \breve{p}, \breve{q}, \breve{r}, \breve{s},
       \breve{t}, \breve{u}, \breve{v}, \breve{w}, \breve{x}, \breve{y}, \breve{z}.
+    | \vec{a}, \vec{b}, \vec{c}, \vec{d}, \vec{e}, \vec{f},
+      \vec{g}, \vec{h}, \vec{i}, \vec{j}, \vec{k}, \vec{l}, \vec{m},
+      \vec{n}, \vec{o}, \vec{p}, \vec{q}, \vec{r}, \vec{s},
+      \vec{t}, \vec{u}, \vec{v}, \vec{w}, \vec{x}, \vec{y}, \vec{z}.
     |});
 
   +p{
@@ -657,6 +703,26 @@ document (|
     let-math \hat-J = ${\hat?:!(0.20){J}}
   ```);
 
+  +p{
+    複数文字にまたがる数式の装飾は、上で示したコマンドでは対応できません。
+    代わりに `\overline`, `\widehat`, `\overrightarrow` といったコマンドが用意されています。
+  }
+
+  +example(```
+    +gather(${
+      | \overline{abc} = \overline{ab} + \overline{ac} - \overline{bc}
+      | \widehat{abc} = \widehat{ab} + \widehat{ac} - \widehat{bc}
+      | \overrightarrow{abc} =
+        \overrightarrow{ab} + \overrightarrow{ac} - \overrightarrow{bc}
+      |});
+  ```)<%
+    +gather(${
+      | \overline{abc} = \overline{ab} + \overline{ac} - \overline{bc}
+      | \widehat{abc} = \widehat{ab} + \widehat{ac} - \widehat{bc}
+      | \overrightarrow{abc} =
+        \overrightarrow{ab} + \overrightarrow{ac} - \overrightarrow{bc}
+      |});
+  >%
 
 >%
 
@@ -759,7 +825,39 @@ document (|
   >%
 
   +p{
-    数式を囲む括弧とは少し異なる括弧のコマンドとして、
+    `\genparen` を用いれば、デフォルトでは用意されていないペアの括弧を定義することもできます。
+  }
+
+  +example(```
+    +eqn(
+      open AZMathParens in
+      let-math \bra m =
+        ${ \genparen!(angle-bracket-l)!(abs-bracket-r)!(m) }
+      in
+      let-math \ket m =
+        ${ \genparen!(abs-bracket-l)!(angle-bracket-r)!(m) }
+      in
+      ${ \bra{\phi}, \ket{\psi} }
+  ```)<%
+    +eqn(
+      open AZMathParens in
+      let-math \bra m =
+        ${ \genparen!(angle-bracket-l)!(abs-bracket-r)!(m) }
+      in
+      let-math \ket m =
+        ${ \genparen!(abs-bracket-l)!(angle-bracket-r)!(m) }
+      in
+      ${ \bra{\phi}, \ket{\psi} }
+    );
+  >%
+
+  +p{
+    `AZMathParens.paren-scheme` は SATySFi の `paren` 型を生成するための関数であり、
+    これを用いればさらに自由度の高い括弧を組むことができます。
+  }
+
+  +p{
+    数式を囲む括弧とは多少異なるものの、
     `\overbrace{m}`, `\underbrace{m}` で数式の上下に波括弧を描く事ができます．
     数式の一部に注釈を入れたいときなどに使えます．
   }
@@ -768,15 +866,15 @@ document (|
     +gather(
       let m = ${\frac{\neg b \pm \sqrt{b^2 - 4ac}}{2a}} in
       ${
-        | x = \overbrace{#m} + \overbrace{\pb{#m} + #m}^{\text!{大事！}}
-        | x = \underbrace{#m + \pb{#m}} + \underbrace{#m}_{\text!{大事！}}
+        |x = \overbrace{#m} + \overbrace{\pb{#m} + #m}^{\text!{大事}}
+        |x = \underbrace{#m + \pb{#m}} + \underbrace{#m}_{\text!{大事}}
         |});
   ```)<%
     +gather(
       let m = ${\frac{\neg b \pm \sqrt{b^2 - 4ac}}{2a}} in
       ${
-        |x = \overbrace{#m} + \overbrace{\pb{#m} + #m}^{\text!{大事！}}
-        |x = \underbrace{#m + \pb{#m}} + \underbrace{#m}_{\text!{大事！}}
+        |x = \overbrace{#m} + \overbrace{\pb{#m} + #m}^{\text!{大事}}
+        |x = \underbrace{#m + \pb{#m}} + \underbrace{#m}_{\text!{大事}}
         |});
   >%
 
@@ -810,7 +908,6 @@ document (|
     ${n} 個の列を持つ行列を組むことができます。
     なお、行の数は要素数から自動で判断されます。
   }
-
 
   +example(```
     +gather(${

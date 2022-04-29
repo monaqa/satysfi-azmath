@@ -1,0 +1,475 @@
+@require: base/list-ext
+
+module AZMathUnicode : sig
+
+  val enable-unicode-math : context -> context
+  
+  direct \unicode-math: [math] inline-cmd
+  direct +enable-unicode-math: [block-text] block-cmd
+  direct \enable-unicode-math: [inline-text] inline-cmd
+
+end = struct
+
+  let greek-chars = [
+    (|origin = 0x03B1; normal = 0x1D6FC; bold = 0x1D736|);  % α -> 𝛼, 𝜶
+    (|origin = 0x03B2; normal = 0x1D6FD; bold = 0x1D737|);  % β -> 𝛽, 𝜷
+    (|origin = 0x03B3; normal = 0x1D6FE; bold = 0x1D738|);  % γ -> 𝛾, 𝜸
+    (|origin = 0x03B4; normal = 0x1D6FF; bold = 0x1D739|);  % δ -> 𝛿, 𝜹
+    (|origin = 0x03B5; normal = 0x1D700; bold = 0x1D73A|);  % ε -> 𝜀, 𝜺
+    (|origin = 0x03B6; normal = 0x1D701; bold = 0x1D73B|);  % ζ -> 𝜁, 𝜻
+    (|origin = 0x03B7; normal = 0x1D702; bold = 0x1D73C|);  % η -> 𝜂, 𝜼
+    (|origin = 0x03B8; normal = 0x1D703; bold = 0x1D73D|);  % θ -> 𝜃, 𝜽
+    (|origin = 0x03B9; normal = 0x1D704; bold = 0x1D73E|);  % ι -> 𝜄, 𝜾
+    (|origin = 0x03BA; normal = 0x1D705; bold = 0x1D73F|);  % κ -> 𝜅, 𝜿
+    (|origin = 0x03BB; normal = 0x1D706; bold = 0x1D740|);  % λ -> 𝜆, 𝝀
+    (|origin = 0x03BC; normal = 0x1D707; bold = 0x1D741|);  % μ -> 𝜇, 𝝁
+    (|origin = 0x03BD; normal = 0x1D708; bold = 0x1D742|);  % ν -> 𝜈, 𝝂
+    (|origin = 0x03BE; normal = 0x1D709; bold = 0x1D743|);  % ξ -> 𝜉, 𝝃
+    (|origin = 0x03BF; normal = 0x1D70A; bold = 0x1D744|);  % ο -> 𝜊, 𝝄
+    (|origin = 0x03C0; normal = 0x1D70B; bold = 0x1D745|);  % π -> 𝜋, 𝝅
+    (|origin = 0x03C1; normal = 0x1D70C; bold = 0x1D746|);  % ρ -> 𝜌, 𝝆
+    (|origin = 0x03C2; normal = 0x1D70D; bold = 0x1D747|);  % ς -> 𝜍, 𝝇
+    (|origin = 0x03C3; normal = 0x1D70E; bold = 0x1D748|);  % σ -> 𝜎, 𝝈
+    (|origin = 0x03C4; normal = 0x1D70F; bold = 0x1D749|);  % τ -> 𝜏, 𝝉
+    (|origin = 0x03C5; normal = 0x1D710; bold = 0x1D74A|);  % υ -> 𝜐, 𝝊
+    (|origin = 0x03C6; normal = 0x1D711; bold = 0x1D74B|);  % φ -> 𝜑, 𝝋
+    (|origin = 0x03C7; normal = 0x1D712; bold = 0x1D74C|);  % χ -> 𝜒, 𝝌
+    (|origin = 0x03C8; normal = 0x1D713; bold = 0x1D74D|);  % ψ -> 𝜓, 𝝍
+    (|origin = 0x03C9; normal = 0x1D714; bold = 0x1D74E|);  % ω -> 𝜔, 𝝎
+  ]
+
+  let unicode-math-chars = [
+    (|class = MathBin   ; codepoint = 0x00B1|);  % ±
+    (|class = MathPrefix; codepoint = 0x00B5|);  % µ
+    (|class = MathBin   ; codepoint = 0x00D7|);  % ×
+    (|class = MathBin   ; codepoint = 0x00F7|);  % ÷
+
+    % 括弧類
+    (|class = MathOpen  ; codepoint = 0x0028|);  % (
+    (|class = MathClose ; codepoint = 0x0029|);  % )
+    (|class = MathOpen  ; codepoint = 0x005B|);  % [
+    (|class = MathClose ; codepoint = 0x005D|);  % ]
+    (|class = MathOpen  ; codepoint = 0x2308|);  % ⌈
+    (|class = MathClose ; codepoint = 0x2309|);  % ⌉
+    (|class = MathOpen  ; codepoint = 0x230A|);  % ⌊
+    (|class = MathClose ; codepoint = 0x230B|);  % ⌋
+    (|class = MathOpen  ; codepoint = 0x27E6|);  % ⟦
+    (|class = MathClose ; codepoint = 0x27E7|);  % ⟧
+    (|class = MathOpen  ; codepoint = 0x27E8|);  % ⟨
+    (|class = MathClose ; codepoint = 0x27E9|);  % ⟩
+    (|class = MathOpen  ; codepoint = 0x27EA|);  % ⟪
+    (|class = MathClose ; codepoint = 0x27EB|);  % ⟫
+    (|class = MathOpen  ; codepoint = 0x27EC|);  % ⟬
+    (|class = MathClose ; codepoint = 0x27ED|);  % ⟭
+    (|class = MathOpen  ; codepoint = 0x27EE|);  % ⟮
+    (|class = MathClose ; codepoint = 0x27EF|);  % ⟯
+
+    % 矢印
+    (|class = MathRel   ; codepoint = 0x2190|);  % ←
+    (|class = MathRel   ; codepoint = 0x2191|);  % ↑
+    (|class = MathRel   ; codepoint = 0x2192|);  % →
+    (|class = MathRel   ; codepoint = 0x2193|);  % ↓
+    (|class = MathRel   ; codepoint = 0x2194|);  % ↔
+    (|class = MathRel   ; codepoint = 0x2195|);  % ↕
+    (|class = MathRel   ; codepoint = 0x2196|);  % ↖
+    (|class = MathRel   ; codepoint = 0x2197|);  % ↗
+    (|class = MathRel   ; codepoint = 0x2198|);  % ↘
+    (|class = MathRel   ; codepoint = 0x2199|);  % ↙
+    (|class = MathRel   ; codepoint = 0x219A|);  % ↚
+    (|class = MathRel   ; codepoint = 0x219B|);  % ↛
+    (|class = MathRel   ; codepoint = 0x219C|);  % ↜
+    (|class = MathRel   ; codepoint = 0x219D|);  % ↝
+    (|class = MathRel   ; codepoint = 0x219E|);  % ↞
+    (|class = MathRel   ; codepoint = 0x219F|);  % ↟
+    (|class = MathRel   ; codepoint = 0x21A0|);  % ↠
+    (|class = MathRel   ; codepoint = 0x21A1|);  % ↡
+    (|class = MathRel   ; codepoint = 0x21A2|);  % ↢
+    (|class = MathRel   ; codepoint = 0x21A3|);  % ↣
+    (|class = MathRel   ; codepoint = 0x21A4|);  % ↤
+    (|class = MathRel   ; codepoint = 0x21A5|);  % ↥
+    (|class = MathRel   ; codepoint = 0x21A6|);  % ↦
+    (|class = MathRel   ; codepoint = 0x21A7|);  % ↧
+    (|class = MathRel   ; codepoint = 0x21A8|);  % ↨
+    (|class = MathRel   ; codepoint = 0x21A9|);  % ↩
+    (|class = MathRel   ; codepoint = 0x21AA|);  % ↪
+    (|class = MathRel   ; codepoint = 0x21AB|);  % ↫
+    (|class = MathRel   ; codepoint = 0x21AC|);  % ↬
+    (|class = MathRel   ; codepoint = 0x21AD|);  % ↭
+    (|class = MathRel   ; codepoint = 0x21AE|);  % ↮
+    (|class = MathRel   ; codepoint = 0x21AF|);  % ↯
+    (|class = MathRel   ; codepoint = 0x21B0|);  % ↰
+    (|class = MathRel   ; codepoint = 0x21B1|);  % ↱
+    (|class = MathRel   ; codepoint = 0x21B2|);  % ↲
+    (|class = MathRel   ; codepoint = 0x21B3|);  % ↳
+    (|class = MathRel   ; codepoint = 0x21B4|);  % ↴
+    (|class = MathRel   ; codepoint = 0x21B5|);  % ↵
+    (|class = MathRel   ; codepoint = 0x21B6|);  % ↶
+    (|class = MathRel   ; codepoint = 0x21B7|);  % ↷
+    (|class = MathRel   ; codepoint = 0x21B8|);  % ↸
+    (|class = MathRel   ; codepoint = 0x21B9|);  % ↹
+    (|class = MathRel   ; codepoint = 0x21BA|);  % ↺
+    (|class = MathRel   ; codepoint = 0x21BB|);  % ↻
+    (|class = MathRel   ; codepoint = 0x21BC|);  % ↼
+    (|class = MathRel   ; codepoint = 0x21BD|);  % ↽
+    (|class = MathRel   ; codepoint = 0x21BE|);  % ↾
+    (|class = MathRel   ; codepoint = 0x21BF|);  % ↿
+    (|class = MathRel   ; codepoint = 0x21C0|);  % ⇀
+    (|class = MathRel   ; codepoint = 0x21C1|);  % ⇁
+    (|class = MathRel   ; codepoint = 0x21C2|);  % ⇂
+    (|class = MathRel   ; codepoint = 0x21C3|);  % ⇃
+    (|class = MathRel   ; codepoint = 0x21C4|);  % ⇄
+    (|class = MathRel   ; codepoint = 0x21C5|);  % ⇅
+    (|class = MathRel   ; codepoint = 0x21C6|);  % ⇆
+    (|class = MathRel   ; codepoint = 0x21C7|);  % ⇇
+    (|class = MathRel   ; codepoint = 0x21C8|);  % ⇈
+    (|class = MathRel   ; codepoint = 0x21C9|);  % ⇉
+    (|class = MathRel   ; codepoint = 0x21CA|);  % ⇊
+    (|class = MathRel   ; codepoint = 0x21CB|);  % ⇋
+    (|class = MathRel   ; codepoint = 0x21CC|);  % ⇌
+    (|class = MathRel   ; codepoint = 0x21CD|);  % ⇍
+    (|class = MathRel   ; codepoint = 0x21CE|);  % ⇎
+    (|class = MathRel   ; codepoint = 0x21CF|);  % ⇏
+    (|class = MathRel   ; codepoint = 0x21D0|);  % ⇐
+    (|class = MathRel   ; codepoint = 0x21D1|);  % ⇑
+    (|class = MathRel   ; codepoint = 0x21D2|);  % ⇒
+    (|class = MathRel   ; codepoint = 0x21D3|);  % ⇓
+    (|class = MathRel   ; codepoint = 0x21D4|);  % ⇔
+    (|class = MathRel   ; codepoint = 0x21D5|);  % ⇕
+    (|class = MathRel   ; codepoint = 0x21D6|);  % ⇖
+    (|class = MathRel   ; codepoint = 0x21D7|);  % ⇗
+    (|class = MathRel   ; codepoint = 0x21D8|);  % ⇘
+    (|class = MathRel   ; codepoint = 0x21D9|);  % ⇙
+    (|class = MathRel   ; codepoint = 0x21DA|);  % ⇚
+    (|class = MathRel   ; codepoint = 0x21DB|);  % ⇛
+    (|class = MathRel   ; codepoint = 0x21DC|);  % ⇜
+    (|class = MathRel   ; codepoint = 0x21DD|);  % ⇝
+    (|class = MathRel   ; codepoint = 0x21DE|);  % ⇞
+    (|class = MathRel   ; codepoint = 0x21DF|);  % ⇟
+    (|class = MathRel   ; codepoint = 0x21E0|);  % ⇠
+    (|class = MathRel   ; codepoint = 0x21E1|);  % ⇡
+    (|class = MathRel   ; codepoint = 0x21E2|);  % ⇢
+    (|class = MathRel   ; codepoint = 0x21E3|);  % ⇣
+    (|class = MathRel   ; codepoint = 0x21E4|);  % ⇤
+    (|class = MathRel   ; codepoint = 0x21E5|);  % ⇥
+    (|class = MathRel   ; codepoint = 0x21E6|);  % ⇦
+    (|class = MathRel   ; codepoint = 0x21E7|);  % ⇧
+    (|class = MathRel   ; codepoint = 0x21E8|);  % ⇨
+    (|class = MathRel   ; codepoint = 0x21E9|);  % ⇩
+    (|class = MathRel   ; codepoint = 0x21EA|);  % ⇪
+    (|class = MathRel   ; codepoint = 0x21EB|);  % ⇫
+    (|class = MathRel   ; codepoint = 0x21EC|);  % ⇬
+    (|class = MathRel   ; codepoint = 0x21ED|);  % ⇭
+    (|class = MathRel   ; codepoint = 0x21EE|);  % ⇮
+    (|class = MathRel   ; codepoint = 0x21EF|);  % ⇯
+    (|class = MathRel   ; codepoint = 0x21F0|);  % ⇰
+    (|class = MathRel   ; codepoint = 0x21F1|);  % ⇱
+    (|class = MathRel   ; codepoint = 0x21F2|);  % ⇲
+    (|class = MathRel   ; codepoint = 0x21F3|);  % ⇳
+    (|class = MathRel   ; codepoint = 0x21F4|);  % ⇴
+    (|class = MathRel   ; codepoint = 0x21F5|);  % ⇵
+    (|class = MathRel   ; codepoint = 0x21F6|);  % ⇶
+    (|class = MathRel   ; codepoint = 0x21F7|);  % ⇷
+    (|class = MathRel   ; codepoint = 0x21F8|);  % ⇸
+    (|class = MathRel   ; codepoint = 0x21F9|);  % ⇹
+    (|class = MathRel   ; codepoint = 0x21FA|);  % ⇺
+    (|class = MathRel   ; codepoint = 0x21FB|);  % ⇻
+    (|class = MathRel   ; codepoint = 0x21FC|);  % ⇼
+    (|class = MathRel   ; codepoint = 0x21FD|);  % ⇽
+    (|class = MathRel   ; codepoint = 0x21FE|);  % ⇾
+    (|class = MathRel   ; codepoint = 0x21FF|);  % ⇿
+    (|class = MathRel   ; codepoint = 0x27F0|);  % ⟰
+    (|class = MathRel   ; codepoint = 0x27F1|);  % ⟱
+    (|class = MathRel   ; codepoint = 0x27F2|);  % ⟲
+    (|class = MathRel   ; codepoint = 0x27F3|);  % ⟳
+    (|class = MathRel   ; codepoint = 0x27F4|);  % ⟴
+    (|class = MathRel   ; codepoint = 0x27F5|);  % ⟵
+    (|class = MathRel   ; codepoint = 0x27F6|);  % ⟶
+    (|class = MathRel   ; codepoint = 0x27F7|);  % ⟷
+    (|class = MathRel   ; codepoint = 0x27F8|);  % ⟸
+    (|class = MathRel   ; codepoint = 0x27F9|);  % ⟹
+    (|class = MathRel   ; codepoint = 0x27FA|);  % ⟺
+    (|class = MathRel   ; codepoint = 0x27FB|);  % ⟻
+    (|class = MathRel   ; codepoint = 0x27FC|);  % ⟼
+    (|class = MathRel   ; codepoint = 0x27FD|);  % ⟽
+    (|class = MathRel   ; codepoint = 0x27FE|);  % ⟾
+    (|class = MathRel   ; codepoint = 0x27FF|);  % ⟿
+
+    % 数学記号
+    (|class = MathPrefix; codepoint = 0x2200|);  % ∀
+    (|class = MathPrefix; codepoint = 0x2202|);  % ∂
+    (|class = MathPrefix; codepoint = 0x2203|);  % ∃
+    (|class = MathPrefix; codepoint = 0x2204|);  % ∄
+    (|class = MathOrd   ; codepoint = 0x2205|);  % ∅
+    (|class = MathPrefix; codepoint = 0x2206|);  % ∆
+    (|class = MathPrefix; codepoint = 0x2207|);  % ∇
+    (|class = MathRel   ; codepoint = 0x2208|);  % ∈
+    (|class = MathRel   ; codepoint = 0x2209|);  % ∉
+    (|class = MathRel   ; codepoint = 0x220A|);  % ∊
+    (|class = MathRel   ; codepoint = 0x220B|);  % ∋
+    (|class = MathRel   ; codepoint = 0x220C|);  % ∌
+    (|class = MathRel   ; codepoint = 0x220D|);  % ∍
+    (|class = MathOrd   ; codepoint = 0x220E|);  % ∎
+    (|class = MathOp    ; codepoint = 0x220F|);  % ∏
+    (|class = MathOp    ; codepoint = 0x2210|);  % ∐
+    (|class = MathOp    ; codepoint = 0x2211|);  % ∑
+    (|class = MathOrd   ; codepoint = 0x2212|);  % −
+    (|class = MathBin   ; codepoint = 0x2213|);  % ∓
+    (|class = MathBin   ; codepoint = 0x2214|);  % ∔
+    (|class = MathBin   ; codepoint = 0x2215|);  % ∕
+    (|class = MathBin   ; codepoint = 0x2216|);  % ∖
+    (|class = MathBin   ; codepoint = 0x2217|);  % ∗
+    (|class = MathBin   ; codepoint = 0x2218|);  % ∘
+    (|class = MathBin   ; codepoint = 0x2219|);  % ∙
+    (|class = MathRel   ; codepoint = 0x221D|);  % ∝
+    (|class = MathOrd   ; codepoint = 0x221E|);  % ∞
+    (|class = MathPrefix; codepoint = 0x221F|);  % ∟
+    (|class = MathPrefix; codepoint = 0x2220|);  % ∠
+    (|class = MathPrefix; codepoint = 0x2221|);  % ∡
+    (|class = MathPrefix; codepoint = 0x2222|);  % ∢
+    (|class = MathRel   ; codepoint = 0x2223|);  % ∣
+    (|class = MathRel   ; codepoint = 0x2224|);  % ∤
+    (|class = MathRel   ; codepoint = 0x2225|);  % ∥
+    (|class = MathRel   ; codepoint = 0x2226|);  % ∦
+    (|class = MathBin   ; codepoint = 0x2227|);  % ∧
+    (|class = MathBin   ; codepoint = 0x2228|);  % ∨
+    (|class = MathBin   ; codepoint = 0x2229|);  % ∩
+    (|class = MathBin   ; codepoint = 0x222A|);  % ∪
+    (|class = MathOp    ; codepoint = 0x222B|);  % ∫
+    (|class = MathOp    ; codepoint = 0x222C|);  % ∬
+    (|class = MathOp    ; codepoint = 0x222D|);  % ∭
+    (|class = MathOp    ; codepoint = 0x222E|);  % ∮
+    (|class = MathOp    ; codepoint = 0x222F|);  % ∯
+    (|class = MathOp    ; codepoint = 0x2230|);  % ∰
+    (|class = MathOp    ; codepoint = 0x2231|);  % ∱
+    (|class = MathOp    ; codepoint = 0x2232|);  % ∲
+    (|class = MathOp    ; codepoint = 0x2233|);  % ∳
+    (|class = MathOrd   ; codepoint = 0x2234|);  % ∴
+    (|class = MathOrd   ; codepoint = 0x2235|);  % ∵
+    (|class = MathBin   ; codepoint = 0x2236|);  % ∶
+    (|class = MathBin   ; codepoint = 0x2237|);  % ∷
+    (|class = MathBin   ; codepoint = 0x2238|);  % ∸
+    (|class = MathBin   ; codepoint = 0x223B|);  % ∻
+    (|class = MathRel   ; codepoint = 0x223C|);  % ∼
+    (|class = MathRel   ; codepoint = 0x223D|);  % ∽
+    (|class = MathRel   ; codepoint = 0x223E|);  % ∾
+    (|class = MathOrd   ; codepoint = 0x223F|);  % ∿
+    (|class = MathOrd   ; codepoint = 0x2240|);  % ≀
+    (|class = MathRel   ; codepoint = 0x2241|);  % ≁
+    (|class = MathRel   ; codepoint = 0x2242|);  % ≂
+    (|class = MathRel   ; codepoint = 0x2243|);  % ≃
+    (|class = MathRel   ; codepoint = 0x2244|);  % ≄
+    (|class = MathRel   ; codepoint = 0x2245|);  % ≅
+    (|class = MathRel   ; codepoint = 0x2246|);  % ≆
+    (|class = MathRel   ; codepoint = 0x2247|);  % ≇
+    (|class = MathRel   ; codepoint = 0x2248|);  % ≈
+    (|class = MathRel   ; codepoint = 0x2249|);  % ≉
+    (|class = MathRel   ; codepoint = 0x224A|);  % ≊
+    (|class = MathRel   ; codepoint = 0x224B|);  % ≋
+    (|class = MathRel   ; codepoint = 0x224C|);  % ≌
+    (|class = MathRel   ; codepoint = 0x224D|);  % ≍
+    (|class = MathRel   ; codepoint = 0x224E|);  % ≎
+    (|class = MathRel   ; codepoint = 0x224F|);  % ≏
+    (|class = MathRel   ; codepoint = 0x2250|);  % ≐
+    (|class = MathRel   ; codepoint = 0x2251|);  % ≑
+    (|class = MathRel   ; codepoint = 0x2252|);  % ≒
+    (|class = MathRel   ; codepoint = 0x2253|);  % ≓
+    (|class = MathRel   ; codepoint = 0x2254|);  % ≔
+    (|class = MathRel   ; codepoint = 0x2255|);  % ≕
+    (|class = MathRel   ; codepoint = 0x2256|);  % ≖
+    (|class = MathRel   ; codepoint = 0x2257|);  % ≗
+    (|class = MathRel   ; codepoint = 0x2258|);  % ≘
+    (|class = MathRel   ; codepoint = 0x2259|);  % ≙
+    (|class = MathRel   ; codepoint = 0x225A|);  % ≚
+    (|class = MathRel   ; codepoint = 0x225B|);  % ≛
+    (|class = MathRel   ; codepoint = 0x225C|);  % ≜
+    (|class = MathRel   ; codepoint = 0x225D|);  % ≝
+    (|class = MathRel   ; codepoint = 0x225E|);  % ≞
+    (|class = MathRel   ; codepoint = 0x225F|);  % ≟
+    (|class = MathRel   ; codepoint = 0x2260|);  % ≠
+    (|class = MathRel   ; codepoint = 0x2261|);  % ≡
+    (|class = MathRel   ; codepoint = 0x2262|);  % ≢
+    (|class = MathRel   ; codepoint = 0x2263|);  % ≣
+    (|class = MathRel   ; codepoint = 0x2264|);  % ≤
+    (|class = MathRel   ; codepoint = 0x2265|);  % ≥
+    (|class = MathRel   ; codepoint = 0x2266|);  % ≦
+    (|class = MathRel   ; codepoint = 0x2267|);  % ≧
+    (|class = MathRel   ; codepoint = 0x2268|);  % ≨
+    (|class = MathRel   ; codepoint = 0x2269|);  % ≩
+    (|class = MathRel   ; codepoint = 0x226A|);  % ≪
+    (|class = MathRel   ; codepoint = 0x226B|);  % ≫
+    (|class = MathRel   ; codepoint = 0x226C|);  % ≬
+    (|class = MathRel   ; codepoint = 0x226D|);  % ≭
+    (|class = MathRel   ; codepoint = 0x226E|);  % ≮
+    (|class = MathRel   ; codepoint = 0x226F|);  % ≯
+    (|class = MathRel   ; codepoint = 0x2270|);  % ≰
+    (|class = MathRel   ; codepoint = 0x2271|);  % ≱
+    (|class = MathRel   ; codepoint = 0x2272|);  % ≲
+    (|class = MathRel   ; codepoint = 0x2273|);  % ≳
+    (|class = MathRel   ; codepoint = 0x2274|);  % ≴
+    (|class = MathRel   ; codepoint = 0x2275|);  % ≵
+    (|class = MathRel   ; codepoint = 0x2276|);  % ≶
+    (|class = MathRel   ; codepoint = 0x2277|);  % ≷
+    (|class = MathRel   ; codepoint = 0x2278|);  % ≸
+    (|class = MathRel   ; codepoint = 0x2279|);  % ≹
+    (|class = MathRel   ; codepoint = 0x227A|);  % ≺
+    (|class = MathRel   ; codepoint = 0x227B|);  % ≻
+    (|class = MathRel   ; codepoint = 0x227C|);  % ≼
+    (|class = MathRel   ; codepoint = 0x227D|);  % ≽
+    (|class = MathRel   ; codepoint = 0x227E|);  % ≾
+    (|class = MathRel   ; codepoint = 0x227F|);  % ≿
+    (|class = MathRel   ; codepoint = 0x2280|);  % ⊀
+    (|class = MathRel   ; codepoint = 0x2281|);  % ⊁
+    (|class = MathRel   ; codepoint = 0x2282|);  % ⊂
+    (|class = MathRel   ; codepoint = 0x2283|);  % ⊃
+    (|class = MathRel   ; codepoint = 0x2284|);  % ⊄
+    (|class = MathRel   ; codepoint = 0x2285|);  % ⊅
+    (|class = MathRel   ; codepoint = 0x2286|);  % ⊆
+    (|class = MathRel   ; codepoint = 0x2287|);  % ⊇
+    (|class = MathRel   ; codepoint = 0x2288|);  % ⊈
+    (|class = MathRel   ; codepoint = 0x2289|);  % ⊉
+    (|class = MathRel   ; codepoint = 0x228A|);  % ⊊
+    (|class = MathRel   ; codepoint = 0x228B|);  % ⊋
+    (|class = MathOp    ; codepoint = 0x228C|);  % ⊌
+    (|class = MathOp    ; codepoint = 0x228D|);  % ⊍
+    (|class = MathOp    ; codepoint = 0x228E|);  % ⊎
+    (|class = MathRel   ; codepoint = 0x228F|);  % ⊏
+    (|class = MathRel   ; codepoint = 0x2290|);  % ⊐
+    (|class = MathRel   ; codepoint = 0x2291|);  % ⊑
+    (|class = MathRel   ; codepoint = 0x2292|);  % ⊒
+    (|class = MathOp    ; codepoint = 0x2293|);  % ⊓
+    (|class = MathOp    ; codepoint = 0x2294|);  % ⊔
+    (|class = MathOp    ; codepoint = 0x2295|);  % ⊕
+    (|class = MathOp    ; codepoint = 0x2296|);  % ⊖
+    (|class = MathOp    ; codepoint = 0x2297|);  % ⊗
+    (|class = MathOp    ; codepoint = 0x2298|);  % ⊘
+    (|class = MathOp    ; codepoint = 0x2299|);  % ⊙
+    (|class = MathOp    ; codepoint = 0x229A|);  % ⊚
+    (|class = MathOp    ; codepoint = 0x229B|);  % ⊛
+    (|class = MathOp    ; codepoint = 0x229C|);  % ⊜
+    (|class = MathOp    ; codepoint = 0x229D|);  % ⊝
+    (|class = MathOp    ; codepoint = 0x229E|);  % ⊞
+    (|class = MathOp    ; codepoint = 0x229F|);  % ⊟
+    (|class = MathOp    ; codepoint = 0x22A0|);  % ⊠
+    (|class = MathOp    ; codepoint = 0x22A1|);  % ⊡
+    (|class = MathOp    ; codepoint = 0x22A2|);  % ⊢
+    (|class = MathOp    ; codepoint = 0x22A3|);  % ⊣
+    (|class = MathOrd   ; codepoint = 0x22A4|);  % ⊤
+    (|class = MathRel   ; codepoint = 0x22A5|);  % ⊥
+    (|class = MathRel   ; codepoint = 0x22A6|);  % ⊦
+    (|class = MathRel   ; codepoint = 0x22A7|);  % ⊧
+    (|class = MathRel   ; codepoint = 0x22A8|);  % ⊨
+    (|class = MathRel   ; codepoint = 0x22A9|);  % ⊩
+    (|class = MathRel   ; codepoint = 0x22AA|);  % ⊪
+    (|class = MathRel   ; codepoint = 0x22AB|);  % ⊫
+    (|class = MathRel   ; codepoint = 0x22AC|);  % ⊬
+    (|class = MathRel   ; codepoint = 0x22AD|);  % ⊭
+    (|class = MathRel   ; codepoint = 0x22AE|);  % ⊮
+    (|class = MathRel   ; codepoint = 0x22AF|);  % ⊯
+    (|class = MathRel   ; codepoint = 0x22B0|);  % ⊰
+    (|class = MathRel   ; codepoint = 0x22B1|);  % ⊱
+    (|class = MathRel   ; codepoint = 0x22B2|);  % ⊲
+    (|class = MathRel   ; codepoint = 0x22B3|);  % ⊳
+    (|class = MathRel   ; codepoint = 0x22B4|);  % ⊴
+    (|class = MathRel   ; codepoint = 0x22B5|);  % ⊵
+    (|class = MathRel   ; codepoint = 0x22B6|);  % ⊶
+    (|class = MathRel   ; codepoint = 0x22B7|);  % ⊷
+    (|class = MathRel   ; codepoint = 0x22B8|);  % ⊸
+    (|class = MathRel   ; codepoint = 0x22B9|);  % ⊹
+    (|class = MathBin   ; codepoint = 0x22BA|);  % ⊺
+    (|class = MathBin   ; codepoint = 0x22BB|);  % ⊻
+    (|class = MathBin   ; codepoint = 0x22BC|);  % ⊼
+    (|class = MathBin   ; codepoint = 0x22BD|);  % ⊽
+    (|class = MathOrd   ; codepoint = 0x22BE|);  % ⊾
+    (|class = MathOrd   ; codepoint = 0x22BF|);  % ⊿
+    (|class = MathOp    ; codepoint = 0x22C0|);  % ⋀
+    (|class = MathOp    ; codepoint = 0x22C1|);  % ⋁
+    (|class = MathOp    ; codepoint = 0x22C2|);  % ⋂
+    (|class = MathOp    ; codepoint = 0x22C3|);  % ⋃
+    (|class = MathBin   ; codepoint = 0x22C4|);  % ⋄
+    (|class = MathBin   ; codepoint = 0x22C5|);  % ⋅
+    (|class = MathBin   ; codepoint = 0x22C6|);  % ⋆
+    (|class = MathBin   ; codepoint = 0x22C7|);  % ⋇
+    (|class = MathRel   ; codepoint = 0x22C8|);  % ⋈
+    (|class = MathBin   ; codepoint = 0x22C9|);  % ⋉
+    (|class = MathBin   ; codepoint = 0x22CA|);  % ⋊
+    (|class = MathBin   ; codepoint = 0x22CB|);  % ⋋
+    (|class = MathBin   ; codepoint = 0x22CC|);  % ⋌
+    (|class = MathRel   ; codepoint = 0x22CD|);  % ⋍
+    (|class = MathBin   ; codepoint = 0x22CE|);  % ⋎
+    (|class = MathBin   ; codepoint = 0x22CF|);  % ⋏
+    (|class = MathRel   ; codepoint = 0x22D0|);  % ⋐
+    (|class = MathRel   ; codepoint = 0x22D1|);  % ⋑
+    (|class = MathBin   ; codepoint = 0x22D2|);  % ⋒
+    (|class = MathBin   ; codepoint = 0x22D3|);  % ⋓
+    (|class = MathRel   ; codepoint = 0x22D4|);  % ⋔
+    (|class = MathRel   ; codepoint = 0x22D5|);  % ⋕
+    (|class = MathRel   ; codepoint = 0x22D6|);  % ⋖
+    (|class = MathRel   ; codepoint = 0x22D7|);  % ⋗
+    (|class = MathRel   ; codepoint = 0x22D8|);  % ⋘
+    (|class = MathRel   ; codepoint = 0x22D9|);  % ⋙
+    (|class = MathRel   ; codepoint = 0x22DA|);  % ⋚
+    (|class = MathRel   ; codepoint = 0x22DB|);  % ⋛
+    (|class = MathRel   ; codepoint = 0x22DC|);  % ⋜
+    (|class = MathRel   ; codepoint = 0x22DD|);  % ⋝
+    (|class = MathRel   ; codepoint = 0x22DE|);  % ⋞
+    (|class = MathRel   ; codepoint = 0x22DF|);  % ⋟
+    (|class = MathRel   ; codepoint = 0x22E0|);  % ⋠
+    (|class = MathRel   ; codepoint = 0x22E1|);  % ⋡
+    (|class = MathRel   ; codepoint = 0x22E2|);  % ⋢
+    (|class = MathRel   ; codepoint = 0x22E3|);  % ⋣
+    (|class = MathRel   ; codepoint = 0x22E4|);  % ⋤
+    (|class = MathRel   ; codepoint = 0x22E5|);  % ⋥
+    (|class = MathRel   ; codepoint = 0x22E6|);  % ⋦
+    (|class = MathRel   ; codepoint = 0x22E7|);  % ⋧
+    (|class = MathRel   ; codepoint = 0x22E8|);  % ⋨
+    (|class = MathRel   ; codepoint = 0x22E9|);  % ⋩
+    (|class = MathRel   ; codepoint = 0x22EA|);  % ⋪
+    (|class = MathRel   ; codepoint = 0x22EB|);  % ⋫
+    (|class = MathRel   ; codepoint = 0x22EC|);  % ⋬
+    (|class = MathRel   ; codepoint = 0x22ED|);  % ⋭
+    (|class = MathOrd   ; codepoint = 0x22EE|);  % ⋮
+    (|class = MathOrd   ; codepoint = 0x22EF|);  % ⋯
+    (|class = MathOrd   ; codepoint = 0x22F0|);  % ⋰
+    (|class = MathOrd   ; codepoint = 0x22F1|);  % ⋱
+    (|class = MathRel   ; codepoint = 0x22F2|);  % ⋲
+    (|class = MathRel   ; codepoint = 0x22F3|);  % ⋳
+    (|class = MathRel   ; codepoint = 0x22F4|);  % ⋴
+    (|class = MathRel   ; codepoint = 0x22F5|);  % ⋵
+    (|class = MathRel   ; codepoint = 0x22F6|);  % ⋶
+    (|class = MathRel   ; codepoint = 0x22F7|);  % ⋷
+    (|class = MathRel   ; codepoint = 0x22F8|);  % ⋸
+    (|class = MathRel   ; codepoint = 0x22F9|);  % ⋹
+    (|class = MathRel   ; codepoint = 0x22FA|);  % ⋺
+    (|class = MathRel   ; codepoint = 0x22FB|);  % ⋻
+    (|class = MathRel   ; codepoint = 0x22FC|);  % ⋼
+    (|class = MathRel   ; codepoint = 0x22FD|);  % ⋽
+    (|class = MathRel   ; codepoint = 0x22FE|);  % ⋾
+    (|class = MathRel   ; codepoint = 0x22FF|);  % ⋿
+
+  ]
+
+  let enable-unicode-math ctx =
+    let enable-greek ctx =
+      greek-chars |> List.fold-left (fun ctx charinfo -> (
+        ctx |> set-math-variant-char MathItalic     charinfo#origin charinfo#normal
+            |> set-math-variant-char MathBoldItalic charinfo#origin charinfo#bold
+            |> set-math-variant-char MathRoman      charinfo#origin charinfo#normal
+            |> set-math-variant-char MathBoldRoman  charinfo#origin charinfo#bold
+            |> set-math-variant-char MathScript     charinfo#origin charinfo#normal
+            |> set-math-variant-char MathBoldScript charinfo#origin charinfo#bold
+      )) ctx
+    in
+    let enable-unicode-math-char ctx =
+      unicode-math-chars |> List.fold-left (fun ctx charinfo -> (
+        ctx |> set-math-char charinfo#codepoint charinfo#codepoint charinfo#class
+      )) ctx
+    in
+
+    ctx |> enable-greek |> enable-unicode-math-char
+
+  let-inline ctx \unicode-math m =
+    script-guard Latin (embed-math (enable-unicode-math ctx) m)
+
+  let-block ctx +enable-unicode-math bt = read-block (enable-unicode-math ctx) bt
+  let-inline ctx \enable-unicode-math bt = read-inline (enable-unicode-math ctx) bt
+end
