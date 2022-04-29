@@ -85,7 +85,7 @@ in
 document (|
   title = {AZmath パッケージ};
   author = {\@monaqa};
-  date = {2020/10/10};
+  date = {2022/04/29};
   show-title = true;
   show-toc = true;
 |) '<%
@@ -575,7 +575,7 @@ document (|
 +section{Unicode を用いた数式の記述}<%
 
   +p{
-    最新版の \SATySFi; （未リリース）では、数式モード内で直接 Unicode 文字を記述できるようになりました。
+    \SATySFi; v0.0.7 では、数式モード内で直接 Unicode 文字を記述できるようになりました。
     ただし、現時点では `set-math-char` という関数を用いてテキスト処理文脈を変更しない限り、
     数式文字間のスペーシングが正しくならない場合があります。
     たとえば除算記号である「`÷`」は多くのケースで二項演算子として用いられる記号ですが、
