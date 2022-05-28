@@ -3,6 +3,7 @@
 @import: accent
 @import: equation
 @import: matrices
+@import: operator
 @import: parens
 @import: unicode-math
 

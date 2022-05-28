@@ -1,0 +1,19 @@
+% azmath/operator.satyh
+%
+% operatorname や operatorname-v のような、文字列を演算子とする関数を定義するパッケージ．
+
+module AZMathOperator : sig
+  direct \operatorname: [string;] math-cmd
+  direct \operatorname-v: [string;] math-cmd
+end = struct
+  let-math \operatorname str = math-char MathOp str
+  let-math \operatorname-v str =
+    let op = math-char MathOp str in
+      math-pull-in-scripts MathOp MathOp (fun sub upper -> (
+        match (sub, upper) with
+        | (None    , None   ) -> op
+        | (Some(s) , None   ) -> math-lower op s
+        | (None    , Some(u)) -> math-upper op u
+        | (Some(s) , Some(u)) -> math-upper (math-lower op s) u
+      ))
+end
