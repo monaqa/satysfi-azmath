@@ -57,6 +57,11 @@
 * `\widehat`
 * `\overline`
 * `\overrightarrow`
+* `\overleftarrow`
+* `\overleftrightarrow`
+* `\underrightarrow`
+* `\underleftarrow`
+* `\underleftrightarrow`
 
 ## Matrices
 
