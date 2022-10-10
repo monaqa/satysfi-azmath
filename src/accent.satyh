@@ -127,12 +127,12 @@ end = struct
     in
     text-in-math MathOrd embedf
 
+  let path-arrowline x-start x-end = Gr.line (x-start, 0pt) (x-end, 0pt)
   let path-leftarrowhead x-start wid-arrowhead =
     start-path (x-start +' 2.5pt, wid-arrowhead)
       |> bezier-to (x-start +' 2.0pt, wid-arrowhead *' 0.5) (x-start +' 1.5pt, wid-arrowhead *' 0.167) (x-start, 0pt)
       |> bezier-to (x-start +' 1.5pt, 0pt -' wid-arrowhead *' 0.167) (x-start +' 2.0pt, 0pt -' wid-arrowhead *' 0.5) (x-start +' 2.5pt, 0pt -' wid-arrowhead)
       |> terminate-path
-
   let path-rightarrowhead x-end wid-arrowhead =
     start-path (x-end -' 2.5pt, wid-arrowhead)
       |> bezier-to (x-end -' 2.0pt, wid-arrowhead *' 0.5) (x-end -' 1.5pt, wid-arrowhead *' 0.167) (x-end, 0pt)
@@ -140,7 +140,6 @@ end = struct
       |> terminate-path
 
   let-math \overrightarrow m =
-
     let embedf ctx =
       let fsize = get-font-size ctx in
       let margin = fsize *' 0.25 in
@@ -149,13 +148,10 @@ end = struct
       let deco (x, y) wid ht dp =
         let text-color = get-text-color ctx in
         let ht-base = y +' ht -' wid-arrowhead in
-
         let x-start = 0pt in
         let x-end = wid in
-
-        let path-line = Gr.line (x-start, 0pt) (x-end, 0pt) in
         [
-          stroke 0.5pt text-color (path-line |> shift-path (x, ht-base));
+          stroke 0.5pt text-color (path-arrowline x-start x-end |> shift-path (x, ht-base));
           stroke 0.5pt text-color (path-rightarrowhead x-end wid-arrowhead |> shift-path (x, ht-base));
         ]
       in
@@ -164,7 +160,6 @@ end = struct
     text-in-math MathOrd embedf
 
   let-math \overleftarrow m =
-
     let embedf ctx =
       let fsize = get-font-size ctx in
       let margin = fsize *' 0.25 in
@@ -173,13 +168,10 @@ end = struct
       let deco (x, y) wid ht dp =
         let text-color = get-text-color ctx in
         let ht-base = y +' ht -' wid-arrowhead in
-
         let x-start = 0pt in
         let x-end = wid in
-
-        let path-line = Gr.line (x-start, 0pt) (x-end, 0pt) in
         [
-          stroke 0.5pt text-color (path-line |> shift-path (x, ht-base));
+          stroke 0.5pt text-color (path-arrowline x-start x-end |> shift-path (x, ht-base));
           stroke 0.5pt text-color (path-leftarrowhead x-start wid-arrowhead |> shift-path (x, ht-base));
         ]
       in
@@ -188,7 +180,6 @@ end = struct
     text-in-math MathOrd embedf
 
   let-math \overleftrightarrow m =
-
     let embedf ctx =
       let fsize = get-font-size ctx in
       let margin = fsize *' 0.25 in
@@ -197,13 +188,10 @@ end = struct
       let deco (x, y) wid ht dp =
         let text-color = get-text-color ctx in
         let ht-base = y +' ht -' wid-arrowhead in
-
         let x-start = 0pt in
         let x-end = wid in
-
-        let path-line = Gr.line (x-start, 0pt) (x-end, 0pt) in
         [
-          stroke 0.5pt text-color (path-line |> shift-path (x, ht-base));
+          stroke 0.5pt text-color (path-arrowline x-start x-end |> shift-path (x, ht-base));
           stroke 0.5pt text-color (path-leftarrowhead x-start wid-arrowhead |> shift-path (x, ht-base));
           stroke 0.5pt text-color (path-rightarrowhead x-end wid-arrowhead |> shift-path (x, ht-base));
         ]
@@ -221,13 +209,10 @@ end = struct
       let deco (x, y) wid ht dp =
         let text-color = get-text-color ctx in
         let ht-base = y -' wid-arrowhead in
-
         let x-start = 0pt in
         let x-end = wid in
-
-        let path-line = Gr.line (x-start, 0pt) (x-end, 0pt) in
         [
-          stroke 0.5pt text-color (path-line |> shift-path (x, ht-base));
+          stroke 0.5pt text-color (path-arrowline x-start x-end |> shift-path (x, ht-base));
           stroke 0.5pt text-color (path-rightarrowhead x-end wid-arrowhead |> shift-path (x, ht-base));
         ]
       in
@@ -244,13 +229,10 @@ end = struct
       let deco (x, y) wid ht dp =
         let text-color = get-text-color ctx in
         let ht-base = y -' wid-arrowhead in
-
         let x-start = 0pt in
         let x-end = wid in
-
-        let path-line = Gr.line (x-start, 0pt) (x-end, 0pt) in
         [
-          stroke 0.5pt text-color (path-line |> shift-path (x, ht-base));
+          stroke 0.5pt text-color (path-arrowline x-start x-end |> shift-path (x, ht-base));
           stroke 0.5pt text-color (path-leftarrowhead x-start wid-arrowhead |> shift-path (x, ht-base));
         ]
       in
@@ -267,13 +249,10 @@ end = struct
       let deco (x, y) wid ht dp =
         let text-color = get-text-color ctx in
         let ht-base = y -' wid-arrowhead in
-
         let x-start = 0pt in
         let x-end = wid in
-
-        let path-line = Gr.line (x-start, 0pt) (x-end, 0pt) in
         [
-          stroke 0.5pt text-color (path-line |> shift-path (x, ht-base));
+          stroke 0.5pt text-color (path-arrowline x-start x-end |> shift-path (x, ht-base));
           stroke 0.5pt text-color (path-leftarrowhead x-start wid-arrowhead |> shift-path (x, ht-base));
           stroke 0.5pt text-color (path-rightarrowhead x-end wid-arrowhead |> shift-path (x, ht-base));
         ]
@@ -281,5 +260,4 @@ end = struct
       inline-frame-outer (0pt, 0pt, margin +' wid-arrowhead, 0pt) deco (embed-math ctx m)
     in
     text-in-math MathOrd embedf
-
 end
